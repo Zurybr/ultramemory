@@ -75,44 +75,93 @@ def consolidate_command():
         consolidator = ConsolidatorAgent(memory)
 
         # First analyze
-        click.echo("Analyzing memory...")
+        click.echo("🔍 Analyzing memory before consolidation...\n")
         analysis = await consolidator.analyze()
-        click.echo(f"  Total documents: {analysis['total_documents']}")
-        click.echo(f"  Potential duplicates: {analysis['potential_duplicates']}")
 
-        # Then consolidate
-        if analysis['potential_duplicates'] > 0:
-            click.echo("\nRunning consolidation...")
+        health = analysis['quality_metrics']['health_score']
+        click.echo(f"   Health Score: {health}/100")
+        click.echo(f"   Total documents: {analysis['total_documents']}")
+        click.echo(f"   Duplicates: {analysis['issues']['duplicates']['count']}")
+        click.echo(f"   Empty content: {analysis['issues']['empty_content']['count']}")
+        click.echo(f"   Too short: {analysis['issues']['too_short']['count']}")
+
+        # Check if consolidation needed
+        needs_consolidation = (
+            analysis['issues']['duplicates']['count'] > 0 or
+            analysis['issues']['empty_content']['count'] > 0 or
+            analysis['issues']['too_short']['count'] > 0
+        )
+
+        if needs_consolidation:
+            click.echo(f"\n🧹 Running consolidation...")
             result = await consolidator.consolidate()
 
-            click.echo(f"\nConsolidation complete:")
-            click.echo(f"  Duplicates removed: {result.get('duplicates_removed', 0)}")
-            click.echo(f"  Entities merged: {result.get('entities_merged', 0)}")
+            click.echo(f"\n✅ Consolidation complete:")
+            click.echo(f"   Duplicates removed: {result.get('duplicates_removed', 0)}")
+            click.echo(f"   Malformed entries fixed: {result.get('malformed_fixed', 0)}")
 
             if result.get('errors'):
-                click.echo(f"  Errors: {result.get('errors')}")
+                click.echo(f"   ⚠️  Errors: {result.get('errors')}")
         else:
-            click.echo("\nNo duplicates found. Memory is clean!")
+            click.echo(f"\n✨ Memory is clean! No consolidation needed.")
 
     asyncio.run(_consolidate())
 
 
 @memory_group.command(name="analyze")
 def analyze_command():
-    """Analyze memory for duplicates and issues."""
+    """Comprehensive memory analysis - finds duplicates, malformed entries, and quality issues."""
     async def _analyze():
         memory = MemorySystem()
         consolidator = ConsolidatorAgent(memory)
 
+        click.echo("🔍 Analyzing memory...\n")
         result = await consolidator.analyze()
 
-        click.echo("\n📊 Memory Analysis:")
-        click.echo(f"  Total documents: {result['total_documents']}")
-        click.echo(f"  Unique content: {result['unique_content']}")
-        click.echo(f"  Potential duplicates: {result['potential_duplicates']}")
+        # Health Score
+        health = result['quality_metrics']['health_score']
+        if health >= 90:
+            health_color = "🟢"
+        elif health >= 70:
+            health_color = "🟡"
+        else:
+            health_color = "🔴"
+
+        click.echo(f"📊 Memory Analysis Report")
+        click.echo(f"{'='*50}")
+        click.echo(f"\n{health_color} Health Score: {health}/100")
+        click.echo(f"\n📈 Statistics:")
+        click.echo(f"   Total documents: {result['total_documents']}")
+        click.echo(f"   Unique content: {result['quality_metrics']['unique_content']}")
+        click.echo(f"   Avg content length: {result['quality_metrics']['avg_content_length']:.0f} chars")
+        click.echo(f"   Metadata coverage: {result['quality_metrics']['metadata_coverage']:.1f}%")
+
+        # Issues summary
+        click.echo(f"\n🔍 Issues Found:")
+        issues = result['issues']
+        issue_counts = [
+            ("  Duplicates", issues['duplicates']['count']),
+            ("  Empty content", issues['empty_content']['count']),
+            ("  Too short (<10 chars)", issues['too_short']['count']),
+            ("  Too long (>100KB)", issues['too_long']['count']),
+            ("  Missing metadata", issues['missing_metadata']['count']),
+            ("  Encoding issues", issues['encoding_issues']['count']),
+            ("  Low quality", issues['low_quality']['count']),
+        ]
+
+        has_issues = False
+        for name, count in issue_counts:
+            if count > 0:
+                click.echo(f"  ⚠️  {name}: {count}")
+                has_issues = True
+
+        if not has_issues:
+            click.echo("  ✅ No issues found!")
+
+        # Recommendations
         click.echo(f"\n💡 Recommendations:")
         for rec in result.get('recommendations', []):
-            click.echo(f"  • {rec}")
+            click.echo(f"   {rec}")
 
     asyncio.run(_analyze())
 
