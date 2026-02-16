@@ -118,12 +118,22 @@ def show_all(ctx):
     # Quick commands
     click.echo("\n")
     click.echo("┌──────────────────────────────────────────────────────────────────────────┐")
+    click.echo("│  🖥️  HERRAMIENTAS DE VISUALIZACIÓN                                       │")
+    click.echo("├──────────────────────────────────────────────────────────────────────────┤")
+    click.echo("│  🎯 Qdrant Dashboard:    http://localhost:6333/dashboard                │")
+    click.echo("│  🐘 pgAdmin (PostgreSQL): http://localhost:5050                          │")
+    click.echo("│  ⚡ RedisInsight:         http://localhost:5540                          │")
+    click.echo("│  📊 Grafana:              http://localhost:3000                          │")
+    click.echo("└──────────────────────────────────────────────────────────────────────────┘")
+    click.echo("")
+    click.echo("┌──────────────────────────────────────────────────────────────────────────┐")
     click.echo("│  💡 COMANDOS RÁPIDOS                                                     │")
     click.echo("├──────────────────────────────────────────────────────────────────────────┤")
     click.echo("│  ulmemory dashboard grafana   → Abrir Grafana                            │")
     click.echo("│  ulmemory dashboard qdrant    → Abrir Qdrant dashboard                   │")
+    click.echo("│  ulmemory dashboard pgadmin   → Abrir pgAdmin                            │")
+    click.echo("│  ulmemory dashboard redisinsight → Abrir RedisInsight                    │")
     click.echo("│  ulmemory dashboard api       → Abrir API docs                           │")
-    click.echo("│  ulmemory dashboard prometheus→ Abrir Prometheus                         │")
     click.echo("└──────────────────────────────────────────────────────────────────────────┘")
     click.echo("")
 
@@ -239,6 +249,51 @@ def open_prometheus():
     click.echo("")
 
     webbrowser.open(prom_url)
+
+
+@dashboard_group.command(name="pgadmin")
+def open_pgadmin():
+    """Open pgAdmin for PostgreSQL visualization."""
+    pgadmin_url = "http://localhost:5050"
+
+    click.echo("\n╔══════════════════════════════════════════════════════╗")
+    click.echo("║            🐘 PGADMIN - POSTGRESQL GUI               ║")
+    click.echo("╚══════════════════════════════════════════════════════╝")
+    click.echo(f"\n  🔗 URL:       {pgadmin_url}")
+    click.echo(f"  👤 Email:     admin@ultramemory.local")
+    click.echo(f"  🔑 Password:  admin")
+    click.echo("\n  📝 Para conectar a PostgreSQL:")
+    click.echo("     Host: postgres (o localhost desde host)")
+    click.echo("     Port: 5432")
+    click.echo("     User: postgres")
+    click.echo("     Pass: postgres")
+    click.echo("")
+
+    webbrowser.open(pgadmin_url)
+
+
+@dashboard_group.command(name="redisinsight")
+def open_redisinsight():
+    """Open RedisInsight for Redis and FalkorDB visualization."""
+    redisinsight_url = "http://localhost:5540"
+
+    click.echo("\n╔══════════════════════════════════════════════════════╗")
+    click.echo("║          ⚡ REDISINSIGHT - REDIS & FALKORDB           ║")
+    click.echo("╚══════════════════════════════════════════════════════╝")
+    click.echo(f"\n  🔗 URL:       {redisinsight_url}")
+    click.echo("\n  📝 Conexiones a agregar:")
+    click.echo("\n  1️⃣  Redis (Cache):")
+    click.echo("     Host: redis (o host.docker.internal desde container)")
+    click.echo("     Port: 6379")
+    click.echo("     Name: Ultramemory Redis")
+    click.echo("\n  2️⃣  FalkorDB (Graph):")
+    click.echo("     Host: falkordb (o host.docker.internal desde container)")
+    click.echo("     Port: 6379")
+    click.echo("     Name: Ultramemory FalkorDB")
+    click.echo("\n  💡 RedisInsight soporta ambas bases de datos!")
+    click.echo("")
+
+    webbrowser.open(redisinsight_url)
 
 
 # Default command shows all

@@ -38,10 +38,13 @@ class Settings:
                 "postgres": "localhost:5432",
                 "grafana": "http://localhost:3000",
                 "prometheus": "http://localhost:9090",
+                "pgadmin": "http://localhost:5050",
+                "redisinsight": "http://localhost:5540",
             },
             "credentials": {
                 "postgres": {"user": "postgres", "pass": "postgres"},
                 "grafana": {"user": "admin", "pass": "admin"},
+                "pgadmin": {"email": "admin@ultramemory.local", "pass": "admin"},
                 "qdrant": {"api_key": ""},
                 "redis": {"password": ""},
             },
