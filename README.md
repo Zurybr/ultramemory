@@ -9,7 +9,9 @@ Ultramemory es un sistema de memoria híbrida que combina almacenamiento vectori
 - **Memoria Híbrida**: Vector DB (Qdrant) + Graph DB (FalkorDB) + Cache (Redis)
 - **Multi-Agente**: Librarian, Researcher, Consolidator, Auto-Researcher
 - **Multi-LLM**: OpenAI, Google Gemini, MiniMax, Kimi, Groq, Ollama
-- **CLI Completo**: 20+ comandos para gestión de memoria
+- **CLI Completo**: 30+ comandos para gestión de memoria
+- **Scheduler Integrado**: Automatiza tareas con cron
+- **Análisis de Memoria**: Detecta duplicados, contenido mal indexado, problemas de calidad
 - **Docker Compose**: Setup completo con 7 servicios
 - **Monitoreo**: Grafana + Prometheus incluidos
 
@@ -63,46 +65,191 @@ Esto inicia todos los servicios Docker:
 
 ## 📖 Uso
 
-### Comandos Principales
+### Gestión de Servicios
 
 ```bash
-# Gestión de servicios
 ulmemory up        # Iniciar servicios
 ulmemory down      # Detener servicios
 ulmemory restart   # Reiniciar servicios
 ulmemory status    # Estado detallado
 ulmemory health    # Health check rápido
-
-# Memoria
-ulmemory memory add "Contenido a recordar"
-ulmemory memory query "búsqueda"
-ulmemory memory consolidate
-
-# Agentes
-ulmemory agent list
-ulmemory agent create
-ulmemory agent launch <nombre>
-
-# Configuración
-ulmemory config show
-ulmemory config set <key> <value>
-
-# Utilidades
-ulmemory logs [servicio]
-ulmemory metrics
-ulmemory dashboard
-ulmemory test
+ulmemory test      # Probar conexiones
 ```
 
-### Configuración de LLM
-
-Edita el archivo de configuración:
+### Operaciones de Memoria
 
 ```bash
-~/.config/ultramemory/config.yaml
+# Agregar contenido
+ulmemory memory add "Contenido a recordar"
+ulmemory memory add "/path/to/file.txt"           # Archivo
+ulmemory memory add "texto" -m "type=nota" -m "priority=high"  # Con metadata
+
+# Buscar en memoria
+ulmemory memory query "búsqueda semántica"
+ulmemory memory query "term" --limit 10
+
+# Analizar memoria (detecta problemas)
+ulmemory memory analyze
+
+# Consolidar y limpiar
+ulmemory memory consolidate
+
+# Investigación automática
+ulmemory memory research --topics "AI,ML" --output ./researches
 ```
 
-Ejemplo con MiniMax:
+### Agentes
+
+```bash
+# Listar agentes disponibles
+ulmemory agent list
+
+# Ejecutar un agente directamente
+ulmemory agent run consolidator                     # Limpiar memoria
+ulmemory agent run researcher "query de búsqueda"   # Buscar
+ulmemory agent run librarian "/path/to/docs"        # Indexar archivos
+ulmemory agent run auto-researcher "topic:AI"       # Investigar
+
+# Crear agente personalizado
+ulmemory agent create
+
+# Gestionar agentes personalizados
+ulmemory agent launch <nombre>
+ulmemory agent config <nombre>
+```
+
+### Scheduler (Tareas Programadas)
+
+El scheduler permite automatizar la ejecución de agentes usando expresiones cron.
+
+```bash
+# Crear tarea programada
+ulmemory schedule add consolidator --cron "0 3 * * *" --name "limpieza-diaria"
+ulmemory schedule add researcher --cron "0 */6 * * *" --args "topic:updates"
+ulmemory schedule add auto-researcher --cron "0 9 * * 1" --args "topic:AI"
+
+# Listar tareas
+ulmemory schedule list
+
+# Ver detalles de una tarea
+ulmemory schedule show 1
+
+# Editar tarea
+ulmemory schedule edit 1 --cron "30 2 * * *" --name "nuevo-nombre"
+
+# Habilitar/Deshabilitar
+ulmemory schedule disable 1
+ulmemory schedule enable 1
+
+# Ejecutar tarea inmediatamente
+ulmemory schedule run 1
+
+# Ver logs de una tarea
+ulmemory schedule logs 1
+
+# Eliminar tarea
+ulmemory schedule remove 1
+```
+
+#### Formato Cron
+
+```
+┌───────────── minuto (0-59)
+│ ┌───────────── hora (0-23)
+│ │ ┌───────────── día del mes (1-31)
+│ │ │ ┌───────────── mes (1-12)
+│ │ │ │ ┌───────────── día de la semana (0-6, 0=domingo)
+│ │ │ │ │
+* * * * *
+```
+
+#### Ejemplos de Programación
+
+| Cron | Descripción |
+|------|-------------|
+| `0 3 * * *` | Cada día a las 3:00am |
+| `30 2 * * *` | Cada día a las 2:30am |
+| `0 */6 * * *` | Cada 6 horas |
+| `0 9 * * 1` | Cada lunes a las 9:00am |
+| `0 4 * * 0` | Cada domingo a las 4:00am |
+| `0 2 1 * *` | El día 1 de cada mes a las 2:00am |
+
+### Configuración
+
+```bash
+ulmemory config show              # Ver configuración actual
+ulmemory config set <key> <value> # Establecer valor
+```
+
+### Utilidades
+
+```bash
+ulmemory logs show [servicio]     # Ver logs de servicios
+ulmemory logs docker [contenedor] # Ver logs de Docker
+ulmemory metrics                  # Mostrar métricas
+ulmemory dashboard                # Abrir Grafana
+```
+
+## 🔍 Análisis de Memoria
+
+El comando `ulmemory memory analyze` realiza un análisis completo:
+
+### Métricas Analizadas
+
+- **Health Score**: Puntuación de salud (0-100)
+- **Total documentos**: Cantidad de entradas
+- **Contenido único**: Entradas sin duplicar
+- **Longitud promedio**: Caracteres por entrada
+- **Cobertura de metadata**: Porcentaje con metadata completo
+
+### Problemas Detectados
+
+| Problema | Descripción |
+|----------|-------------|
+| Duplicados | Contenido idéntico |
+| Contenido vacío | Entradas sin texto |
+| Muy corto | <10 caracteres |
+| Muy largo | >100KB |
+| Sin metadata | Faltan campos esenciales |
+| Problemas de encoding | Mojibake/ caracteres corruptos |
+| Baja calidad | Contenido repetitivo/sin estructura |
+
+### Recomendaciones
+
+El sistema genera recomendaciones automáticas basadas en los problemas encontrados.
+
+## 🧹 Consolidación
+
+El comando `ulmemory memory consolidate` limpia la memoria:
+
+- Elimina duplicados exactos
+- Borra contenido vacío
+- Remueve entradas muy cortas (<10 chars)
+- Fusiona entidades relacionadas
+
+## 🤖 Agentes del Sistema
+
+| Agente | Función | Uso |
+|--------|---------|-----|
+| **Librarian** | Inserta contenido en memoria | `ulmemory agent run librarian "texto"` |
+| **Researcher** | Busca en memoria | `ulmemory agent run researcher "query"` |
+| **Consolidator** | Limpia y optimiza | `ulmemory agent run consolidator` |
+| **Auto-Researcher** | Investigación automática | `ulmemory agent run auto-researcher "topic"` |
+
+## 📁 Tipos de Archivo Soportados
+
+El Librarian puede indexar automáticamente:
+
+| Tipo | Extensiones |
+|------|-------------|
+| Texto | `.txt`, `.md` |
+| Datos | `.csv`, `.xlsx`, `.xls` |
+| Documentos | `.pdf` |
+| Web | `.html`, URLs |
+
+## ⚙️ Configuración de LLM
+
+Edita el archivo: `~/.config/ultramemory/config.yaml`
 
 ```yaml
 llm:
@@ -114,14 +261,20 @@ llm:
     google:
       api_key: "tu-gemini-api-key"
       model: "gemini-1.5-flash"
+    openai:
+      api_key: "tu-openai-api-key"
+      model: "gpt-4"
 ```
 
 ## 🏗️ Arquitectura
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                     CLI (Click/Typer)                        │
-├─────────────────────────────────────────────────────────────┤
+│                     CLI (Click)                              │
+│  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐           │
+│  │ memory  │ │  agent  │ │schedule │ │ config  │           │
+│  └────┬────┘ └────┬────┘ └────┬────┘ └────┬────┘           │
+├───────┴──────────┴──────────┴──────────┴───────────────────┤
 │                     Agent Layer                              │
 │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐       │
 │  │Librarian │ │Researcher│ │Consolida.│ │Auto-Res. │       │
@@ -152,20 +305,28 @@ Una vez iniciados los servicios:
 
 ```
 ultramemory/
-├── agents/           # Agentes del sistema
-│   ├── librarian.py  # Agente de inserción
-│   ├── researcher.py # Agente de consulta
-│   ├── consolidator.py
+├── agents/              # Agentes del sistema
+│   ├── librarian.py     # Agente de inserción
+│   ├── researcher.py    # Agente de consulta
+│   ├── consolidator.py  # Agente de limpieza
 │   └── auto_researcher.py
-├── core/             # Núcleo del sistema
-│   ├── memory.py     # Sistema de memoria híbrida
+├── core/                # Núcleo del sistema
+│   ├── memory.py        # Sistema de memoria híbrida
 │   ├── qdrant_client.py
 │   ├── graphiti_client.py
 │   └── redis_client.py
-├── services/         # Servicios API
-├── ultramemory_cli/  # CLI commands
-├── docker/           # Configuración Docker
-├── tests/            # Tests
+├── services/            # Servicios API
+├── ultramemory_cli/     # CLI commands
+│   ├── main.py          # Entry point
+│   ├── memory.py        # Comandos de memoria
+│   ├── agents.py        # Comandos de agentes
+│   ├── scheduler.py     # Comandos de scheduler
+│   └── ...
+├── skills/              # Skills para automatización
+│   └── ulmemory-cli/
+│       └── SKILL.md
+├── docker/              # Configuración Docker
+├── tests/               # Tests
 ├── docker-compose.yml
 ├── Dockerfile.api
 ├── pyproject.toml
@@ -176,7 +337,7 @@ ultramemory/
 
 ### Error: "externally-managed-environment"
 
-El script de instalación crea automáticamente un virtual environment. Si tienes problemas:
+El script de instalación crea automáticamente un virtual environment:
 
 ```bash
 rm -rf ~/.ulmemory/venv
@@ -185,24 +346,29 @@ rm -rf ~/.ulmemory/venv
 
 ### Puerto ocupado
 
-Si algún puerto está en uso:
-
 ```bash
-# Verificar qué usa el puerto
 lsof -i :6333  # Qdrant
 lsof -i :6379  # Redis
 lsof -i :5432  # PostgreSQL
-
-# Detener el contenedor conflictivo
 docker stop <container_name>
 ```
 
 ### CLI no encontrado
 
 ```bash
-# Agregar manualmente al PATH
 echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
 source ~/.bashrc
+```
+
+### Tareas programadas no ejecutan
+
+```bash
+# Verificar crontab
+crontab -l
+
+# Ver logs
+ulmemory schedule logs <id>
+cat /tmp/ulmemory-task-<id>.log
 ```
 
 ## 📄 Licencia
