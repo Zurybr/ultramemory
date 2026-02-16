@@ -32,7 +32,7 @@ dependencies = [
 ]
 
 [project.scripts]
-ulmemory = "ultramemory_cli.main:app"
+ulmemory = "ultramemory_cli.main:main"
 
 [build-system]
 requires = ["setuptools>=68.0"]

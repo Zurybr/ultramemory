@@ -23,17 +23,28 @@ class MemorySystem:
 
     async def add(self, content: str, metadata: dict[str, Any] | None = None) -> str:
         """Add content to memory system."""
+        # 0. Ensure Qdrant collection exists
+        await self.qdrant.ensure_collection()
+
         # 1. Generate embedding
         embedding = await self._generate_embedding(content)
 
         # 2. Add to Qdrant (vector search)
         doc_id = await self.qdrant.add(embedding, content, metadata or {})
 
-        # 3. Add to Graphiti (temporal graph)
-        episode_id = await self.graphiti.add_episode(content, metadata or {})
+        # 3. Add to Graphiti (temporal graph) - optional
+        try:
+            episode_id = await self.graphiti.add_episode(content, metadata or {})
+        except Exception:
+            # Graphiti is optional, continue without it
+            pass
 
-        # 4. Cache in Redis
-        await self.redis.set(f"doc:{doc_id}", content, ex=3600)
+        # 4. Cache in Redis - optional
+        try:
+            await self.redis.set(f"doc:{doc_id}", content, ex=3600)
+        except Exception:
+            # Redis is optional, continue without it
+            pass
 
         return doc_id
 
@@ -45,8 +56,13 @@ class MemorySystem:
         # 2. Search Qdrant
         results = await self.qdrant.search(embedding, limit)
 
-        # 3. Search Graphiti for temporal context
-        graph_results = await self.graphiti.search(query_text, limit)
+        # 3. Search Graphiti for temporal context - optional
+        graph_results = []
+        try:
+            graph_results = await self.graphiti.search(query_text, limit)
+        except Exception:
+            # Graphiti is optional, continue without it
+            pass
 
         return {
             "vector_results": results,

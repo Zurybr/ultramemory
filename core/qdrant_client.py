@@ -41,9 +41,9 @@ class QdrantClientWrapper:
 
     async def search(self, query_embedding: list[float], limit: int = 5) -> list[dict[str, Any]]:
         """Search vectors."""
-        results = self.client.search(
+        results = self.client.query_points(
             collection_name=self.collection_name,
-            query_vector=query_embedding,
+            query=query_embedding,
             limit=limit,
         )
 
@@ -54,7 +54,7 @@ class QdrantClientWrapper:
                 "content": r.payload.get("content"),
                 "metadata": r.payload.get("metadata", {}),
             }
-            for r in results
+            for r in results.points
         ]
 
     async def delete(self, point_id: str):

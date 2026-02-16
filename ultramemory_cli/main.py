@@ -38,7 +38,6 @@ def up(path: str):
     result = subprocess.run(["docker", "compose", "-f", str(compose_file), "up", "-d"], cwd=path)
     if result.returncode == 0:
         click.echo("Services started successfully!")
-        health()
     else:
         click.echo("Failed to start services.", err=True)
         sys.exit(1)
@@ -63,7 +62,6 @@ def restart(path: str):
     compose_file = Path(path) / "docker-compose.yml"
     subprocess.run(["docker", "compose", "-f", str(compose_file), "restart"], cwd=path)
     click.echo("Services restarted.")
-    health()
 
 
 @app.command(name="health")
@@ -141,10 +139,10 @@ app.add_command(metrics_command, name="metrics")
 app.add_command(dashboard_command, name="dashboard")
 
 
+def main():
+    """Entry point for the CLI."""
+    app()
+
+
 if __name__ == "__main__":
-    # When running with `python -m ultramemory_cli.main`, Python loads the module
-    # as both __main__ and ultramemory_cli.main, creating two separate module objects.
-    # The subcommand imports add commands to ultramemory_cli.main.app, not __main__.app.
-    # So we need to use the app from the ultramemory_cli.main module.
-    import ultramemory_cli.main as _main_mod
-    _main_mod.app()
+    main()

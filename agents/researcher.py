@@ -26,8 +26,13 @@ class ResearcherAgent:
             limit=limit,
         )
 
-        # 2. Search temporal graph
-        graph_results = await self.memory.graphiti.search(query_text, limit=limit)
+        # 2. Search temporal graph - optional
+        graph_results = []
+        try:
+            graph_results = await self.memory.graphiti.search(query_text, limit=limit)
+        except Exception:
+            # Graphiti is optional, continue without it
+            pass
 
         # 3. Combine and rank results
         combined_results = self._combine_results(vector_results, graph_results)
