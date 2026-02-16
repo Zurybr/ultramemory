@@ -1,10 +1,9 @@
 """Qdrant client wrapper for vector search."""
 
 from typing import Any
-import uuid
-
 from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, PointStruct, VectorParams
+from qdrant_client.models import Distance, VectorParams, PointStruct
+import uuid
 
 
 class QdrantClientWrapper:
@@ -23,9 +22,7 @@ class QdrantClientWrapper:
                 vectors_config=VectorParams(size=vector_size, distance=Distance.COSINE),
             )
 
-    async def add(
-        self, embedding: list[float], content: str, metadata: dict[str, Any]
-    ) -> str:
+    async def add(self, embedding: list[float], content: str, metadata: dict[str, Any]) -> str:
         """Add a vector to Qdrant."""
         point_id = str(uuid.uuid4())
 
@@ -42,9 +39,7 @@ class QdrantClientWrapper:
 
         return point_id
 
-    async def search(
-        self, query_embedding: list[float], limit: int = 5
-    ) -> list[dict[str, Any]]:
+    async def search(self, query_embedding: list[float], limit: int = 5) -> list[dict[str, Any]]:
         """Search vectors."""
         results = self.client.search(
             collection_name=self.collection_name,

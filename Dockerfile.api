@@ -1,0 +1,15 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+COPY pyproject.toml .
+RUN pip install -e .
+
+COPY core/ ./core/
+COPY agents/ ./agents/
+COPY services/ ./services/
+COPY ultramemory_cli/ ./ultramemory_cli/
+
+ENV PYTHONPATH=/app
+
+CMD ["uvicorn", "services.main:app", "--host", "0.0.0.0", "--port", "8000"]

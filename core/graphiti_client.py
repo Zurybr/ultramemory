@@ -1,8 +1,7 @@
 """Graphiti client for temporal graph memory."""
 
-from typing import Any
-
 import httpx
+from typing import Any
 
 
 class GraphitiClient:
@@ -21,20 +20,22 @@ class GraphitiClient:
         response.raise_for_status()
         return response.json()["episode_id"]
 
-    async def search(self, query: str, limit: int = 5) -> list[dict[str, Any]]:
+    async def search(self, query: str, limit: int = 5, time_range: str | None = None) -> list[dict[str, Any]]:
         """Search the graph."""
+        params = {"query": query, "limit": limit}
+        if time_range:
+            params["time_range"] = time_range
+            
         response = await self.client.post(
             f"{self.base_url}/search",
-            json={"query": query, "limit": limit},
+            json=params,
         )
         response.raise_for_status()
         return response.json()["results"]
 
-    async def get_history(
-        self, entity_name: str, time_range: str | None = None
-    ) -> list[dict[str, Any]]:
+    async def get_history(self, entity_name: str, time_range: str | None = None) -> list[dict[str, Any]]:
         """Get entity history within time range."""
-        params: dict[str, str] = {"entity_name": entity_name}
+        params = {"entity_name": entity_name}
         if time_range:
             params["time_range"] = time_range
 

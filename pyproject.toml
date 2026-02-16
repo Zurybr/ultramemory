@@ -38,6 +38,11 @@ ulmemory = "ultramemory_cli.main:app"
 requires = ["setuptools>=68.0"]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["core*", "agents*", "services*", "ultramemory_cli*", "tests*"]
+exclude = ["docker*"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
