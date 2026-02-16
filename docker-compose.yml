@@ -49,7 +49,7 @@ services:
       retries: 5
 
   falkordb:
-    image: ghcr.io/falkordb/falkordb:latest
+    image: falkordb/falkordb:latest
     container_name: ultramemory-falkordb
     ports:
       - "6370:6379"
