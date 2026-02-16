@@ -7,7 +7,11 @@ Ultramemory es un sistema de memoria híbrida que combina almacenamiento vectori
 ## 🚀 Características
 
 - **Memoria Híbrida**: Vector DB (Qdrant) + Graph DB (FalkorDB) + Cache (Redis)
-- **Multi-Agente**: Librarian, Researcher, Consolidator, Auto-Researcher
+- **Multi-Agente**: Librarian, Researcher, Consolidator, Proactive, Terminal, Consultant
+- **Auto-Research**: Investigación web automática con Tavily + CodeWiki
+- **Code Indexer**: Indexa repos GitHub automáticamente
+- **Heartbeat System**: Tareas proactivas desde archivo markdown
+- **PRD Generator**: Convierte investigaciones en PRDs ejecutables
 - **Multi-LLM**: OpenAI, Google Gemini, MiniMax, Kimi, Groq, Ollama
 - **CLI Completo**: 30+ comandos para gestión de memoria
 - **Scheduler Integrado**: Automatiza tareas con cron
@@ -282,11 +286,38 @@ El comando `ulmemory memory consolidate` limpia la memoria:
 
 | Agente | Función | Uso |
 |--------|---------|-----|
-| **Librarian** | Inserta contenido en memoria | `ulmemory agent run librarian "texto"` |
-| **Researcher** | Busca en memoria | `ulmemory agent run researcher "query"` |
-| **Consolidator** | Limpia y optimiza | `ulmemory agent run consolidator` |
-| **Auto-Researcher** | Investigación automática | `ulmemory agent run auto-researcher "topic"` |
-| **Deleter** | Elimina memorias | `ulmemory agent run deleter "all"` |
+| **Librarian** | Inserta contenido (texto, archivos, URLs, imágenes, videos) | `ulmemory agent run librarian "texto"` |
+| **Researcher** | Busca en memoria + web | `ulmemory agent run researcher "query" --web` |
+| **Consolidator** | Limpia, optimiza y genera insights | `ulmemory agent run consolidator` |
+| **Auto-Researcher** | Investigación automática | `ulmemory agent run auto-researcher "topic" --deep` |
+| **Deleter** | Elimina memorias con audit log | `ulmemory agent run deleter "all"` |
+| **Consultant** | Búsqueda ordenada | `ulmemory agent consultant "query" --order date` |
+| **Proactive** | Ejecuta tareas del heartbeat | `ulmemory agent proactive` |
+| **Terminal** | Dashboard interactivo | `ulmemory agent terminal dashboard` |
+| **CodeIndexer** | Indexa repos GitHub | `ulmemory code-index owner/repo` |
+
+### Gestión de Heartbeat
+
+```bash
+ulmemory agent heartbeat list          # Ver tareas pendientes
+ulmemory agent heartbeat add "Nueva tarea #tag"
+ulmemory agent heartbeat complete "tarea"
+```
+
+### Generación de PRDs
+
+```bash
+ulmemory agent prd generate "research_file.md"
+ulmemory agent prd list
+```
+
+### Scheduler Automático
+
+```bash
+ulmemory schedule add-proactive        # Cada 30 min
+ulmemory schedule add-researcher        # Cada hora
+ulmemory schedule add-consolidator     # Diario 5am
+```
 
 ## 📁 Tipos de Archivo Soportados
 

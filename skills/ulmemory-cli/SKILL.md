@@ -20,6 +20,24 @@ CLI para el sistema de memoria híbrida Ultramemory que combina almacenamiento v
 - Programar tareas automáticas de limpieza/investigación
 - Analizar salud de la memoria
 
+## 🆕 Novedades v0.3.0
+
+### Sistema de Agentes Completos
+- **ConsultantAgent**: Búsqueda ordenada por relevancia/fecha/fuente
+- **ProactiveAgent**: Ejecuta tareas del heartbeat.md cada 30 min
+- **TerminalAgent**: Dashboard interactivo y diagnóstico
+- **PRDGeneratorAgent**: Convierte investigaciones en PRDs ejecutables
+- **Heartbeat System**: Gestión de tareas desde archivo markdown
+
+### Scheduler Automático
+```bash
+ulmemory schedule add-proactive        # Cada 30 min
+ulmemory schedule add-researcher        # Cada hora
+ulmemory schedule add-consolidator     # Diario 5am
+```
+
+---
+
 ## 🆕 Novedades v0.2.0
 
 ### Web Search Integration
@@ -112,6 +130,21 @@ ulmemory agent run auto-researcher "topic:AI,topic:ML" --deep
 | `ulmemory agent launch <nombre>` | Lanzar agente custom |
 | `ulmemory agent config <nombre>` | Configurar agente |
 
+### Nuevos Agentes v0.3.0
+
+| Comando | Descripción |
+|---------|-------------|
+| `ulmemory agent consultant "query" --order date` | **Búsqueda ordenada** (relevance/date/source) |
+| `ulmemory agent proactive` | **Ejecutar tareas del heartbeat** |
+| `ulmemory agent terminal dashboard` | **Dashboard interactivo** |
+| `ulmemory agent terminal diagnose` | **Diagnóstico del sistema** |
+| `ulmemory agent terminal guide` | **Guía interactiva** |
+| `ulmemory agent heartbeat list` | **Ver tareas pendientes** |
+| `ulmemory agent heartbeat add "tarea #tag"` | **Agregar tarea** |
+| `ulmemory agent heartbeat complete "tarea"` | **Completar tarea** |
+| `ulmemory agent prd generate "research.md"` | **Generar PRD** |
+| `ulmemory agent prd list` | **Listar PRDs** |
+
 ### Scheduler (Tareas Programadas)
 
 | Comando | Descripción |
@@ -126,6 +159,16 @@ ulmemory agent run auto-researcher "topic:AI,topic:ML" --deep
 | `ulmemory schedule logs <id>` | Ver logs de tarea |
 | `ulmemory schedule history <id>` | **Ver historial de ejecuciones** |
 | `ulmemory schedule remove <id>` | Eliminar tarea |
+
+### Nuevos Schedules v0.3.0
+
+| Comando | Descripción |
+|---------|-------------|
+| `ulmemory schedule add-proactive` | **Agente proactivo cada 30 min** |
+| `ulmemory schedule add-researcher` | **Investigador hourly (default)** |
+| `ulmemory schedule add-researcher --cron "0 */6 * * *"` | Investigador cada 6 horas |
+| `ulmemory schedule add-consolidator` | **Consolidator daily 5am** |
+| `ulmemory schedule add-consolidator --hour 8` | Consolidator daily 8am |
 
 ### Configuración
 
