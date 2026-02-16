@@ -1,22 +1,52 @@
 ---
 name: ulmemory-cli
-description: Use when working with Ultramemory hybrid memory system, storing/retrieving information, managing multi-agent memory operations, or scheduling automated tasks
+description: Use when working with Ultramemory hybrid memory system, storing/retrieving information, managing multi-agent memory operations, web research with Tavily, or scheduling automated tasks
 ---
 
 # Ulmemory CLI
 
 ## Overview
 
-CLI para el sistema de memoria híbrida Ultramemory que combina almacenamiento vectorial (Qdrant), grafos temporales (FalkorDB) y caché (Redis) con soporte multi-LLM y scheduler integrado.
+CLI para el sistema de memoria híbrida Ultramemory que combina almacenamiento vectorial (Qdrant), grafos temporales (FalkorDB) y caché (Redis) con soporte multi-LLM, investigación web (Tavily), CodeWiki y scheduler integrado.
 
 ## When to Use
 
 - Almacenar información para recuperación semántica
 - Buscar/recuperar memories previas
+- **Investigar en web con Tavily API**
+- **Investigar repositorios GitHub con CodeWiki**
 - Gestionar servicios Docker del sistema
-- Crear/configurar agentes personalizados
+- Crear/configurar agentes personalizados con skills
 - Programar tareas automáticas de limpieza/investigación
 - Analizar salud de la memoria
+
+## 🆕 Novedades v0.2.0
+
+### Web Search Integration
+```bash
+# Buscar en memoria + web
+ulmemory agent run researcher "AI agents" --web
+
+# Especificar fuentes
+ulmemory agent run researcher "topic" --sources web,memory,codewiki
+
+# Deep research con expansión de queries
+ulmemory agent run researcher "topic" --deep
+```
+
+### Agent Skills System
+```bash
+ulmemory agent skills                    # Ver skills disponibles
+ulmemory agent skills researcher         # Ver skills de un agente
+ulmemory agent add-skill mi-agente web_search
+ulmemory agent edit mi-agente --schedule "0 9 * * *"
+```
+
+### Enhanced Auto-Researcher
+```bash
+# Investigación profunda con web + codewiki
+ulmemory agent run auto-researcher "topic:AI,topic:ML" --deep
+```
 
 ## Quick Reference
 
@@ -47,19 +77,26 @@ CLI para el sistema de memoria híbrida Ultramemory que combina almacenamiento v
 | `ulmemory memory delete-all --confirm -f` | Eliminar TODAS las memorias |
 | `ulmemory memory research --topics "AI,ML"` | Investigación automática |
 
-### Agentes
+### Agentes (Enhanced)
 
 | Comando | Descripción |
 |---------|-------------|
 | `ulmemory agent list` | Listar agentes disponibles |
-| `ulmemory agent run consolidator` | Ejecutar limpieza de memoria |
+| `ulmemory agent skills` | Listar skills disponibles |
+| `ulmemory agent skills <name>` | Ver skills de un agente |
 | `ulmemory agent run researcher "query"` | Buscar en memoria |
+| `ulmemory agent run researcher "query" --web` | **Memory + Web (Tavily)** |
+| `ulmemory agent run researcher "query" --sources web,memory,codewiki` | **Multi-source** |
+| `ulmemory agent run researcher "query" --deep` | **Deep research** |
 | `ulmemory agent run librarian "texto"` | Agregar a memoria |
-| `ulmemory agent run librarian /path/to/docs` | Indexar directorio |
 | `ulmemory agent run auto-researcher "topic"` | Investigar tema |
+| `ulmemory agent run auto-researcher "topic" --deep` | **Deep research + web** |
+| `ulmemory agent run consolidator` | Ejecutar limpieza de memoria |
 | `ulmemory agent run deleter "all"` | Eliminar todas las memorias |
-| `ulmemory agent run deleter "query"` | Eliminar memorias por búsqueda |
 | `ulmemory agent create` | Crear agente personalizado |
+| `ulmemory agent add-skill <agent> <skill>` | **Agregar skill a agente** |
+| `ulmemory agent remove-skill <agent> <skill>` | **Remover skill** |
+| `ulmemory agent edit <agent> --schedule "cron"` | **Editar configuración** |
 | `ulmemory agent launch <nombre>` | Lanzar agente custom |
 | `ulmemory agent config <nombre>` | Configurar agente |
 
@@ -75,6 +112,7 @@ CLI para el sistema de memoria híbrida Ultramemory que combina almacenamiento v
 | `ulmemory schedule disable <id>` | Deshabilitar tarea |
 | `ulmemory schedule run <id>` | Ejecutar tarea ahora |
 | `ulmemory schedule logs <id>` | Ver logs de tarea |
+| `ulmemory schedule history <id>` | **Ver historial de ejecuciones** |
 | `ulmemory schedule remove <id>` | Eliminar tarea |
 
 ### Configuración
@@ -92,6 +130,49 @@ CLI para el sistema de memoria híbrida Ultramemory que combina almacenamiento v
 | `ulmemory logs docker [contenedor]` | Ver logs de Docker |
 | `ulmemory metrics` | Mostrar métricas de Prometheus |
 | `ulmemory dashboard` | Abrir dashboard de Grafana |
+| `ulmemory version` | **Mostrar versión** |
+
+## 🔍 Research Skills
+
+### Web Search (Tavily)
+```bash
+# Requiere API key de Tavily (gratuita)
+export TAVILY_API_KEY="tvly-xxx"
+
+# O en config.yaml:
+# research:
+#   tavily:
+#     api_key: "tvly-xxx"
+```
+
+### CodeWiki Integration
+```bash
+# Buscar repositorios relacionados
+ulmemory agent run researcher "RAG frameworks" --sources codewiki
+
+# Auto-researcher incluye CodeWiki automáticamente
+ulmemory agent run auto-researcher "vector databases"
+```
+
+### Multi-Source Research
+```bash
+# Combinar todas las fuentes
+ulmemory agent run researcher "LLM agents" --sources web,memory,codewiki
+
+# Deep research con expansión automática de queries
+ulmemory agent run researcher "RAG systems" --deep
+```
+
+## 📋 Available Skills
+
+| Skill | Descripción | Categoría |
+|-------|-------------|-----------|
+| `web_search` | Búsqueda web con Tavily API | Research |
+| `codewiki` | Investigación de repos GitHub | Research |
+| `deep_research` | Research multi-fuente con expansión | Research |
+| `memory_query` | Búsqueda en memoria interna | Memory |
+| `memory_add` | Agregar contenido a memoria | Memory |
+| `memory_count` | Contar documentos | Memory |
 
 ## Flujo de Uso Típico
 
@@ -102,17 +183,23 @@ ulmemory up
 # 2. Indexar documentos
 ulmemory memory add ./docs/
 
-# 3. Buscar información
-ulmemory memory query "importante"
+# 3. Buscar en memoria + web
+ulmemory agent run researcher "importante" --web
 
-# 4. Analizar salud
+# 4. Deep research
+ulmemory agent run researcher "AI memory systems" --deep --sources web,codewiki
+
+# 5. Analizar salud
 ulmemory memory analyze
 
-# 5. Limpiar si es necesario
+# 6. Limpiar si es necesario
 ulmemory memory consolidate
 
-# 6. Programar mantenimiento diario
+# 7. Programar mantenimiento diario
 ulmemory schedule add consolidator --cron "0 3 * * *" --name "limpieza-diaria"
+
+# 8. Programar research semanal
+ulmemory schedule add auto-researcher --cron "0 9 * * 1" --args "topic:AI" --name "research-semanal"
 ```
 
 ## Scheduler - Automatización
@@ -142,37 +229,20 @@ ulmemory schedule add researcher --cron "0 */6 * * *" --args "updates"
 * * * * *
 ```
 
-### Ejemplos de Cron
-
-| Expresión | Significado |
-|-----------|-------------|
-| `0 3 * * *` | Cada día a las 3:00am |
-| `30 2 * * *` | Cada día a las 2:30am |
-| `0 */6 * * *` | Cada 6 horas |
-| `0 9 * * 1` | Cada lunes a las 9:00am |
-| `0 4 * * 0` | Cada domingo a las 4:00am |
-| `0 2 1 * *` | Día 1 de cada mes a las 2:00am |
-
 ### Gestionar Tareas
 
 ```bash
 # Ver todas las tareas
 ulmemory schedule list
 
-# Ver detalles
-ulmemory schedule show 1
+# Ver historial de ejecuciones
+ulmemory schedule history 1
 
 # Editar horario
 ulmemory schedule edit 1 --cron "0 4 * * *"
 
-# Deshabilitar temporalmente
-ulmemory schedule disable 1
-
 # Ejecutar inmediatamente
 ulmemory schedule run 1
-
-# Ver logs
-ulmemory schedule logs 1
 ```
 
 ## Análisis de Memoria
@@ -197,14 +267,6 @@ El comando `ulmemory memory analyze` detecta:
 | Encoding | Mojibake/caracteres corruptos |
 | Baja calidad | Repetitivo/sin estructura |
 
-## Consolidación
-
-El comando `ulmemory memory consolidate`:
-- Elimina duplicados exactos
-- Borra contenido vacío
-- Remueve entradas muy cortas
-- Fusiona entidades relacionadas
-
 ## Tipos de Archivo Soportados
 
 | Tipo | Extensiones |
@@ -226,8 +288,9 @@ El comando `ulmemory memory consolidate`:
 | Grafana | 3000 | http://localhost:3000 |
 | Prometheus | 9090 | http://localhost:9090 |
 
-## Configuración de LLM
+## Configuración
 
+### LLM y APIs
 Archivo: `~/.config/ultramemory/config.yaml`
 
 ```yaml
@@ -243,6 +306,24 @@ llm:
     openai:
       api_key: "sk-xxx"
       model: "gpt-4"
+
+# Research Tools
+research:
+  tavily:
+    api_key: "tvly-xxx"
+    enabled: true
+  codewiki:
+    enabled: true
+    cli_path: "~/.claude/skills/codewiki/codewiki"
+
+# Agent Configuration
+agents:
+  researcher:
+    enabled: true
+    sources: ["memory", "web", "codewiki"]
+  auto_researcher:
+    enabled: true
+    sources: ["web", "codewiki"]
 ```
 
 ## Common Mistakes
@@ -254,35 +335,47 @@ llm:
 | Puerto ocupado | `lsof -i :PUERTO` y detener conflicto |
 | Tarea no ejecuta | Verificar crontab con `crontab -l` |
 | Health score bajo | Ejecutar `ulmemory memory consolidate` |
+| `TAVILY_API_KEY not set` | Configurar API key en config.yaml |
+| Web search no funciona | Verificar API key de Tavily |
 
 ## Ejemplo de Uso Programático
 
 ```python
 import asyncio
 from core.memory import MemorySystem
-from agents.librarian import LibrarianAgent
 from agents.researcher import ResearcherAgent
-from agents.consolidator import ConsolidatorAgent
+from agents.tools import registry, WebSearchTool
 
 async def main():
     memory = MemorySystem()
-    librarian = LibrarianAgent(memory)
-    researcher = ResearcherAgent(memory)
-    consolidator = ConsolidatorAgent(memory)
 
-    # Indexar
-    await librarian.add("Información importante")
+    # Enhanced researcher with web search
+    researcher = ResearcherAgent(
+        memory,
+        enable_web_search=True,
+        tavily_api_key="tvly-xxx"
+    )
 
-    # Buscar
-    results = await researcher.query("importante", limit=5)
-    print(results)
+    # Multi-source research
+    result = await researcher.research(
+        "AI agents",
+        sources=["web", "memory", "codewiki"]
+    )
 
-    # Analizar
-    analysis = await consolidator.analyze()
-    print(f"Health: {analysis['quality_metrics']['health_score']}")
+    print(f"Web results: {len(result.web_results)}")
+    print(f"Memory results: {len(result.memory_results)}")
+    print(f"CodeWiki repos: {len(result.codewiki_results)}")
 
-    # Limpiar
-    await consolidator.consolidate()
+    if result.web_answer:
+        print(f"AI Answer: {result.web_answer}")
+
+    # Deep research
+    deep_result = await researcher.deep_research(
+        "vector databases",
+        max_depth=3,
+        save_to_memory=True
+    )
+    print(f"Total sources: {deep_result['total_sources']}")
 
 asyncio.run(main())
 ```
@@ -296,3 +389,12 @@ asyncio.run(main())
 | Tareas programadas | `~/.ulmemory/schedules/tasks.json` |
 | Agentes custom | `~/.config/ultramemory/agents/` |
 | Logs de tareas | `/tmp/ulmemory-task-<id>.log` |
+
+## 🔗 API Keys
+
+| Servicio | Variable | Obtener |
+|----------|----------|---------|
+| Web Search | `TAVILY_API_KEY` | https://tavily.com (gratis) |
+| OpenAI | `OPENAI_API_KEY` | https://platform.openai.com |
+| Google | `GOOGLE_API_KEY` | https://ai.google.dev |
+| MiniMax | Config file | https://minimax.chat |

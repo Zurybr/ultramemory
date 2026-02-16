@@ -1,77 +1,250 @@
-"""Researcher Agent - queries information from memory."""
+"""Enhanced Researcher Agent with multi-source research capabilities."""
 
+from dataclasses import dataclass, field
 from typing import Any
 from core.memory import MemorySystem
+from agents.tools.base import ToolResult
+from agents.tools.web_search import WebSearchTool
+from agents.tools.memory_tools import MemoryQueryTool, MemoryAddTool
+from agents.tools.codewiki_tool import CodeWikiTool, MultiSourceResearchTool
+
+
+@dataclass
+class ResearchResult:
+    """Structured research result from multiple sources."""
+    query: str
+    memory_results: list[dict[str, Any]] = field(default_factory=list)
+    web_results: list[dict[str, Any]] = field(default_factory=list)
+    codewiki_results: list[dict[str, Any]] = field(default_factory=list)
+    web_answer: str | None = None
+    sources: list[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+
+    @property
+    def total_results(self) -> int:
+        return len(self.memory_results) + len(self.web_results) + len(self.codewiki_results)
 
 
 class ResearcherAgent:
-    """Agent responsible for searching and retrieving information from memory."""
+    """Enhanced researcher agent with web (Tavily), CodeWiki, and memory search."""
 
-    def __init__(self, memory_system: MemorySystem):
+    def __init__(
+        self,
+        memory_system: MemorySystem,
+        enable_web_search: bool = True,
+        enable_codewiki: bool = True,
+        tavily_api_key: str | None = None,
+    ):
         self.memory = memory_system
+        self.enable_web_search = enable_web_search
+        self.enable_codewiki = enable_codewiki
+
+        # Initialize individual tools
+        self.memory_tool = MemoryQueryTool(memory_system)
+        self.memory_add_tool = MemoryAddTool(memory_system)
+        self.web_tool = WebSearchTool(api_key=tavily_api_key) if enable_web_search else None
+        self.codewiki_tool = CodeWikiTool() if enable_codewiki else None
+
+        # Initialize multi-source tool
+        self.multi_tool = MultiSourceResearchTool(
+            web_tool=self.web_tool,
+            codewiki_tool=self.codewiki_tool,
+            memory_tool=self.memory_tool,
+        )
 
     async def query(self, query_text: str, limit: int = 5) -> dict[str, Any]:
-        """Query the memory system.
+        """Query memory system (legacy interface for backward compatibility).
 
         Args:
             query_text: The search query
             limit: Maximum number of results
 
         Returns:
-            List of relevant documents with scores
+            Dict with query, results, and total_found
         """
-        # 1. Search vector store
-        vector_results = await self.memory.qdrant.search(
-            await self.memory._generate_embedding(query_text),
-            limit=limit,
-        )
-
-        # 2. Search temporal graph - optional
-        graph_results = []
-        try:
-            graph_results = await self.memory.graphiti.search(query_text, limit=limit)
-        except Exception:
-            # Graphiti is optional, continue without it
-            pass
-
-        # 3. Combine and rank results
-        combined_results = self._combine_results(vector_results, graph_results)
-
+        result = await self.memory_tool.execute(query=query_text, limit=limit)
+        if result.success:
+            return {
+                "query": query_text,
+                "results": result.data.get("vector_results", []),
+                "total_found": len(result.data.get("vector_results", [])),
+            }
         return {
             "query": query_text,
-            "results": combined_results[:limit],
-            "total_found": len(combined_results),
+            "results": [],
+            "total_found": 0,
+            "error": result.error,
         }
 
-    def _combine_results(self, vector_results: list, graph_results: list) -> list[dict[str, Any]]:
-        """Combine and deduplicate results from different sources."""
-        seen_ids = set()
-        combined = []
+    async def research(
+        self,
+        query: str,
+        sources: list[str] | None = None,
+        max_results_per_source: int = 5
+    ) -> ResearchResult:
+        """Comprehensive research across memory and web.
 
-        # Priority to vector results
-        for r in vector_results:
-            if r["id"] not in seen_ids:
-                seen_ids.add(r["id"])
-                combined.append({
-                    **r,
-                    "source": "vector",
-                })
+        Args:
+            query: Research query
+            sources: List of sources ["memory", "web", "codewiki"]. Default: all available
+            max_results_per_source: Max results per source
 
-        for r in graph_results:
-            if r.get("episode_id") not in seen_ids:
-                seen_ids.add(r.get("episode_id"))
-                combined.append({
-                    "id": r.get("episode_id"),
-                    "content": r.get("content"),
-                    "score": r.get("score", 0.5),
-                    "metadata": r.get("metadata", {}),
-                    "source": "graph",
-                })
+        Returns:
+            ResearchResult with combined findings from all sources
+        """
+        # Default to all available sources
+        if sources is None:
+            sources = ["memory"]
+            if self.enable_web_search and self.web_tool and self.web_tool.api_key:
+                sources.append("web")
+            if self.enable_codewiki and self.codewiki_tool and self.codewiki_tool.codewiki_path:
+                sources.append("codewiki")
 
-        # Re-rank by score
-        combined.sort(key=lambda x: x.get("score", 0), reverse=True)
+        result = await self.multi_tool.execute(
+            query=query,
+            sources=sources,
+            max_results=max_results_per_source
+        )
 
-        return combined
+        if result.success:
+            data = result.data
+            return ResearchResult(
+                query=query,
+                memory_results=data.get("memory", []),
+                web_results=data.get("web", []),
+                codewiki_results=data.get("codewiki", []),
+                web_answer=data.get("web_answer"),
+                sources=self._extract_all_sources(data),
+                errors=data.get("errors", []),
+            )
+
+        return ResearchResult(
+            query=query,
+            errors=[result.error] if result.error else [],
+        )
+
+    def _extract_all_sources(self, data: dict) -> list[str]:
+        """Extract all source URLs/references from results."""
+        sources = []
+
+        # Web sources
+        for r in data.get("web", []):
+            if url := r.get("url"):
+                sources.append(url)
+
+        # CodeWiki repos
+        for r in data.get("codewiki", []):
+            if repo := r.get("repo"):
+                sources.append(f"https://github.com/{repo}")
+
+        return sources
+
+    async def deep_research(
+        self,
+        topic: str,
+        sub_queries: list[str] | None = None,
+        max_depth: int = 3,
+        save_to_memory: bool = True
+    ) -> dict[str, Any]:
+        """Deep research with automatic query expansion.
+
+        Args:
+            topic: Main research topic
+            sub_queries: Optional sub-queries to explore
+            max_depth: Maximum depth of research (max sub-queries)
+            save_to_memory: Save results to memory
+
+        Returns:
+            Comprehensive research report
+        """
+        # Generate sub-queries if not provided
+        if not sub_queries:
+            sub_queries = self._generate_sub_queries(topic)
+
+        results = {
+            "topic": topic,
+            "main_research": None,
+            "sub_research": [],
+            "synthesis": None,
+            "total_sources": 0,
+        }
+
+        # Main research
+        main_result = await self.research(topic)
+        results["main_research"] = {
+            "memory_count": len(main_result.memory_results),
+            "web_count": len(main_result.web_results),
+            "codewiki_count": len(main_result.codewiki_results),
+            "sources": main_result.sources,
+            "web_answer": main_result.web_answer,
+            "errors": main_result.errors,
+        }
+        results["total_sources"] += len(main_result.sources)
+
+        # Sub-research
+        for sub_q in sub_queries[:max_depth]:
+            sub_result = await self.research(sub_q)
+            results["sub_research"].append({
+                "query": sub_q,
+                "memory_count": len(sub_result.memory_results),
+                "web_count": len(sub_result.web_results),
+                "codewiki_count": len(sub_result.codewiki_results),
+                "sources": sub_result.sources,
+            })
+            results["total_sources"] += len(sub_result.sources)
+
+        # Save to memory if requested
+        if save_to_memory:
+            synthesis = self._create_synthesis(topic, results)
+            await self.memory_add_tool.execute(
+                content=synthesis,
+                metadata={"type": "deep_research", "topic": topic}
+            )
+            results["synthesis_saved"] = True
+
+        return results
+
+    def _generate_sub_queries(self, topic: str) -> list[str]:
+        """Generate sub-queries for deep research."""
+        prefixes = [
+            "what is",
+            "how does",
+            "best practices for",
+            "latest developments in",
+            "tutorials for",
+            "examples of",
+        ]
+        return [f"{prefix} {topic}" for prefix in prefixes]
+
+    def _create_synthesis(self, topic: str, results: dict) -> str:
+        """Create synthesis markdown from results."""
+        lines = [
+            f"# Deep Research: {topic}",
+            "",
+            "## Overview",
+            "",
+            f"Total sources found: {results['total_sources']}",
+            "",
+            "## Main Research",
+            "",
+        ]
+
+        if answer := results["main_research"].get("web_answer"):
+            lines.append(f"**Answer:** {answer}")
+            lines.append("")
+
+        lines.append("### Sources")
+        for source in results["main_research"].get("sources", []):
+            lines.append(f"- {source}")
+
+        lines.extend(["", "## Sub-Research Topics", ""])
+
+        for sub in results.get("sub_research", []):
+            lines.append(f"### {sub['query']}")
+            lines.append(f"- Sources: {len(sub['sources'])}")
+            lines.append("")
+
+        return "\n".join(lines)
 
     async def query_by_time(self, query_text: str, time_range: str) -> dict[str, Any]:
         """Query with time-based context.
@@ -83,11 +256,18 @@ class ResearcherAgent:
         Returns:
             Results within time context
         """
-        # Search with time filter
-        graph_results = await self.memory.graphiti.search(query_text, time_range=time_range)
-
-        return {
-            "query": query_text,
-            "time_range": time_range,
-            "results": graph_results,
-        }
+        # Search with time filter via Graphiti
+        try:
+            graph_results = await self.memory.graphiti.search(query_text, time_range=time_range)
+            return {
+                "query": query_text,
+                "time_range": time_range,
+                "results": graph_results,
+            }
+        except Exception as e:
+            return {
+                "query": query_text,
+                "time_range": time_range,
+                "results": [],
+                "error": str(e),
+            }
