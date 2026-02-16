@@ -71,3 +71,31 @@ class QdrantClientWrapper:
             return True
         except Exception:
             return False
+
+    async def get_all(self, limit: int = 1000) -> list[dict[str, Any]]:
+        """Get all points from collection."""
+        try:
+            result, _ = self.client.scroll(
+                collection_name=self.collection_name,
+                limit=limit,
+                with_payload=True,
+                with_vectors=False,
+            )
+            return [
+                {
+                    "id": str(point.id),
+                    "content": point.payload.get("content", ""),
+                    "metadata": point.payload.get("metadata", {}),
+                }
+                for point in result
+            ]
+        except Exception:
+            return []
+
+    async def count(self) -> int:
+        """Count total points in collection."""
+        try:
+            result = self.client.count(collection_name=self.collection_name)
+            return result.count
+        except Exception:
+            return 0

@@ -69,18 +69,52 @@ def query_command(query: str, limit: int):
 
 @memory_group.command(name="consolidate")
 def consolidate_command():
-    """Run consolidation agent."""
+    """Run consolidation agent to remove duplicates and optimize memory."""
     async def _consolidate():
         memory = MemorySystem()
         consolidator = ConsolidatorAgent(memory)
 
-        result = await consolidator.consolidate()
+        # First analyze
+        click.echo("Analyzing memory...")
+        analysis = await consolidator.analyze()
+        click.echo(f"  Total documents: {analysis['total_documents']}")
+        click.echo(f"  Potential duplicates: {analysis['potential_duplicates']}")
 
-        click.echo(f"Consolidation complete:")
-        click.echo(f"  Duplicates removed: {result.get('duplicates_removed', 0)}")
-        click.echo(f"  Entities merged: {result.get('entities_merged', 0)}")
+        # Then consolidate
+        if analysis['potential_duplicates'] > 0:
+            click.echo("\nRunning consolidation...")
+            result = await consolidator.consolidate()
+
+            click.echo(f"\nConsolidation complete:")
+            click.echo(f"  Duplicates removed: {result.get('duplicates_removed', 0)}")
+            click.echo(f"  Entities merged: {result.get('entities_merged', 0)}")
+
+            if result.get('errors'):
+                click.echo(f"  Errors: {result.get('errors')}")
+        else:
+            click.echo("\nNo duplicates found. Memory is clean!")
 
     asyncio.run(_consolidate())
+
+
+@memory_group.command(name="analyze")
+def analyze_command():
+    """Analyze memory for duplicates and issues."""
+    async def _analyze():
+        memory = MemorySystem()
+        consolidator = ConsolidatorAgent(memory)
+
+        result = await consolidator.analyze()
+
+        click.echo("\n📊 Memory Analysis:")
+        click.echo(f"  Total documents: {result['total_documents']}")
+        click.echo(f"  Unique content: {result['unique_content']}")
+        click.echo(f"  Potential duplicates: {result['potential_duplicates']}")
+        click.echo(f"\n💡 Recommendations:")
+        for rec in result.get('recommendations', []):
+            click.echo(f"  • {rec}")
+
+    asyncio.run(_analyze())
 
 
 @memory_group.command(name="research")
