@@ -104,9 +104,24 @@ EXTENSION_TO_LANGUAGE = {
     ".scss": "SCSS", ".sass": "Sass", ".less": "Less",
     ".md": "Markdown", ".markdown": "Markdown",
     ".txt": "Text", ".rst": "reStructuredText",
-    ".vb": "Visual Basic", ".cls": "VB Class",
-    ".frm": "VB Form", ".bas": "VB Module", ".mod": "VB Module",
+    ".vb": "Visual Basic", ".cls": "VB Class", ".frm": "VB Form", ".bas": "VB Module", ".mod": "VB Module",
+    ".dsr": "VB Data Report", ".dca": "VB Data Report", ".dsx": "VB Data Report",
+    ".vbp": "VB Project", ".vbg": "VB Project Group", ".vbw": "VB Workspace",
+    ".ocx": "VB ActiveX Control",
     ".pas": "Pascal", ".dpk": "Delphi Package", ".dpr": "Delphi Project",
+    # Legacy/Enterprise languages
+    ".adb": "Ada", ".ads": "Ada", ".ada": "Ada",
+    ".asm": "Assembly", ".s": "Assembly",
+    ".m": "Objective-C", ".mm": "Objective-C",
+    ".f": "Fortran", ".f90": "Fortran", ".f95": "Fortran",
+    ".cob": "COBOL", ".cbl": "COBOL",
+    ".pro": "Prolog",
+    ".mup": "MuPAD",
+    ".sci": "Scilab", ".sce": "Scilab",
+    ".jl": "Julia",
+    ".nim": "Nim",
+    ".v": "Verilog", ".sv": "SystemVerilog",
+    ".vhdl": "VHDL",
     ".r": "R", ".lua": "Lua", ".pl": "Perl", ".pm": "Perl Module",
     ".ex": "Elixir", ".exs": "Elixir",
     ".erl": "Erlang", ".hs": "Haskell",
@@ -129,8 +144,8 @@ DEFAULT_EXCLUDES = {
     "dist", "build", ".next", ".nuxt", "target", ".pytest_cache",
     ".mypy_cache", ".tox", ".eggs", "*.egg-info", ".DS_Store",
     ".idea", ".vscode", "vendor", "bin", "obj",
-    # VB6 compiled files to skip
-    "OBJ", "frx", "DCA", "log"
+    # Only exclude log files, NOT OBJ/frx which contain VB6 form data
+    "log"
 }
 
 
