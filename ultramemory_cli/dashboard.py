@@ -120,20 +120,21 @@ def show_all(ctx):
     click.echo("┌──────────────────────────────────────────────────────────────────────────┐")
     click.echo("│  🖥️  HERRAMIENTAS DE VISUALIZACIÓN                                       │")
     click.echo("├──────────────────────────────────────────────────────────────────────────┤")
-    click.echo("│  🎯 Qdrant Dashboard:    http://localhost:6333/dashboard                │")
+    click.echo("│  🎯 Qdrant Dashboard:     http://localhost:6333/dashboard               │")
+    click.echo("│  🕸️  FalkorDB Browser:    http://localhost:3001                         │")
+    click.echo("│  ⚡ RedisInsight:          http://localhost:5540                         │")
     click.echo("│  🐘 pgAdmin (PostgreSQL): http://localhost:5050                          │")
-    click.echo("│  ⚡ RedisInsight:         http://localhost:5540                          │")
-    click.echo("│  📊 Grafana:              http://localhost:3000                          │")
+    click.echo("│  📊 Grafana:               http://localhost:3000                         │")
     click.echo("└──────────────────────────────────────────────────────────────────────────┘")
     click.echo("")
     click.echo("┌──────────────────────────────────────────────────────────────────────────┐")
     click.echo("│  💡 COMANDOS RÁPIDOS                                                     │")
     click.echo("├──────────────────────────────────────────────────────────────────────────┤")
-    click.echo("│  ulmemory dashboard grafana   → Abrir Grafana                            │")
-    click.echo("│  ulmemory dashboard qdrant    → Abrir Qdrant dashboard                   │")
-    click.echo("│  ulmemory dashboard pgadmin   → Abrir pgAdmin                            │")
-    click.echo("│  ulmemory dashboard redisinsight → Abrir RedisInsight                    │")
-    click.echo("│  ulmemory dashboard api       → Abrir API docs                           │")
+    click.echo("│  ulmemory dashboard qdrant       → Abrir Qdrant (embeddings)             │")
+    click.echo("│  ulmemory dashboard falkor       → Abrir FalkorDB Browser (grafos)       │")
+    click.echo("│  ulmemory dashboard redisinsight → Abrir RedisInsight (cache+graph)      │")
+    click.echo("│  ulmemory dashboard pgadmin      → Abrir pgAdmin (PostgreSQL)            │")
+    click.echo("│  ulmemory dashboard grafana      → Abrir Grafana (métricas)              │")
     click.echo("└──────────────────────────────────────────────────────────────────────────┘")
     click.echo("")
 
@@ -283,17 +284,37 @@ def open_redisinsight():
     click.echo(f"\n  🔗 URL:       {redisinsight_url}")
     click.echo("\n  📝 Conexiones a agregar:")
     click.echo("\n  1️⃣  Redis (Cache):")
-    click.echo("     Host: redis (o host.docker.internal desde container)")
+    click.echo("     Host: host.docker.internal (o localhost)")
     click.echo("     Port: 6379")
     click.echo("     Name: Ultramemory Redis")
     click.echo("\n  2️⃣  FalkorDB (Graph):")
-    click.echo("     Host: falkordb (o host.docker.internal desde container)")
-    click.echo("     Port: 6379")
+    click.echo("     Host: host.docker.internal (o localhost)")
+    click.echo("     Port: 6370")
     click.echo("     Name: Ultramemory FalkorDB")
     click.echo("\n  💡 RedisInsight soporta ambas bases de datos!")
     click.echo("")
 
     webbrowser.open(redisinsight_url)
+
+
+@dashboard_group.command(name="falkor")
+def open_falkordb_browser():
+    """Open FalkorDB Browser for graph visualization."""
+    falkor_url = "http://localhost:3001"
+
+    click.echo("\n╔══════════════════════════════════════════════════════╗")
+    click.echo("║          🕸️  FALKORDB BROWSER - GRAPH VISUALIZER      ║")
+    click.echo("╚══════════════════════════════════════════════════════╝")
+    click.echo(f"\n  🔗 URL:       {falkor_url}")
+    click.echo("\n  📊 Funcionalidades:")
+    click.echo("     • Visualizar grafos de conocimiento")
+    click.echo("     • Ejecutar queries Cypher")
+    click.echo("     • Explorar nodos y relaciones")
+    click.echo("     • Ver datos temporales")
+    click.echo("\n  💡 Ya conectado automáticamente a FalkorDB!")
+    click.echo("")
+
+    webbrowser.open(falkor_url)
 
 
 # Default command shows all

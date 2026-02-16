@@ -40,6 +40,7 @@ class Settings:
                 "prometheus": "http://localhost:9090",
                 "pgadmin": "http://localhost:5050",
                 "redisinsight": "http://localhost:5540",
+                "falkordb-browser": "http://localhost:3001",
             },
             "credentials": {
                 "postgres": {"user": "postgres", "pass": "postgres"},

@@ -144,6 +144,17 @@ services:
       - redis
       - falkordb
 
+  falkordb-browser:
+    image: falkordb/falkordb-browser:latest
+    container_name: ultramemory-falkordb-browser
+    ports:
+      - "3001:3000"
+    environment:
+      - FALKORDB_HOST=falkordb
+      - FALKORDB_PORT=6379
+    depends_on:
+      - falkordb
+
 volumes:
   postgres_data:
   redis_data:
