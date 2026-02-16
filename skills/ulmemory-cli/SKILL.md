@@ -77,6 +77,18 @@ ulmemory agent run auto-researcher "topic:AI,topic:ML" --deep
 | `ulmemory memory delete-all --confirm -f` | Eliminar TODAS las memorias |
 | `ulmemory memory research --topics "AI,ML"` | Investigación automática |
 
+### Code Index (Repos GitHub)
+
+| Comando | Descripción |
+|---------|-------------|
+| `ulmemory code-index owner/repo` | Indexar repo (usa categoría guardada o personal) |
+| `ulmemory code-index owner/repo -c opensource` | Indexar con categoría específica |
+| `ulmemory code-index owner/repo -f` | Forzar re-index completo |
+| `ulmemory code-index owner/repo -l 50` | Limitar archivos a indexar |
+| `ulmemory code-index owner/repo -e "vendor"` | Excluir patrones adicionales |
+
+**Categorías disponibles**: `lefarma`, `e6labs`, `personal`, `opensource`, `hobby`, `trabajo`, `dependencias`
+
 ### Agentes (Enhanced)
 
 | Comando | Descripción |

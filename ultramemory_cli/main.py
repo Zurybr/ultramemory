@@ -130,6 +130,7 @@ from .test import test_command
 from .metrics import show_metrics as metrics_command
 from .dashboard import dashboard_group
 from .scheduler import schedule_group
+from .code_index import code_index_command
 
 app.add_command(config_group, name="config")
 app.add_command(memory_group, name="memory")
@@ -139,6 +140,7 @@ app.add_command(test_command, name="test")
 app.add_command(metrics_command, name="metrics")
 app.add_command(dashboard_group, name="dashboard")
 app.add_command(schedule_group, name="schedule")
+app.add_command(code_index_command, name="code-index")
 
 
 def main():

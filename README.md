@@ -107,6 +107,46 @@ ulmemory memory delete-all --confirm -f            # Eliminar TODO (cuidado!)
 ulmemory memory research --topics "AI,ML" --output ./researches
 ```
 
+### Indexar Repositorios GitHub
+
+El comando `code-index` permite indexar repositorios GitHub completos en memoria vectorial, con metadata rico (commits, autor, categoría) y soporte para actualización incremental.
+
+```bash
+# Indexar repositorio (usa categoría guardada o 'personal')
+ulmemory code-index owner/repo
+ulmemory code-index https://github.com/owner/repo
+
+# Especificar categoría
+ulmemory code-index owner/repo -c opensource
+ulmemory code-index owner/repo -c personal
+ulmemory code-index owner/repo -c trabajo
+
+# Opciones adicionales
+ulmemory code-index owner/repo -f              # Forzar re-index completo
+ulmemory code-index owner/repo -l 50           # Limitar archivos (default: 100)
+ulmemory code-index owner/repo -e "vendor"     # Excluir patrones
+
+# Ejemplos prácticos
+ulmemory code-index kubernetes/kubernetes -c opensource -l 20
+ulmemory code-index myorg/myrepo -c trabajo -f
+```
+
+**Categorías disponibles**:
+- `lefarma` - Proyectos LeFarma
+- `e6labs` - Proyectos E6 Labs
+- `personal` - Proyectos personales (default)
+- `opensource` - Proyectos open source
+- `hobby` - Proyectos hobby
+- `trabajo` - Proyectos laborales
+- `dependencias` - Librerías dependencias
+
+**Características**:
+- ✅ Indexación incremental (solo re-indexa archivos cambiados)
+- ✅ Metadata rico (commit SHA, fecha, autor)
+- ✅ CodeWiki para repos públicos
+- ✅ Persistencia de categorías en `~/.ulmemory/settings.json`
+- ✅ Soporta 25+ extensiones de código
+
 ### Agentes
 
 ```bash
