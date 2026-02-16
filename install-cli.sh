@@ -25,6 +25,21 @@ mkdir -p "$CONFIG_DIR/logs"
 
 echo "Config directory: $CONFIG_DIR"
 
+# Check if we're in a virtual environment
+if [ -z "$VIRTUAL_ENV" ]; then
+    echo "Creating virtual environment..."
+    VENV_DIR="$CONFIG_DIR/venv"
+    python3 -m venv "$VENV_DIR"
+    source "$VENV_DIR/bin/activate"
+    echo "Virtual environment created at $VENV_DIR"
+else
+    echo "Using existing virtual environment: $VIRTUAL_ENV"
+fi
+
+# Upgrade pip
+echo "Upgrading pip..."
+pip install --upgrade pip
+
 # Install package in editable mode
 echo "Installing ultramemory package..."
 pip install -e .
@@ -60,6 +75,47 @@ EOF
     echo "Default settings created at $CONFIG_DIR/settings.json"
 fi
 
+# Create wrapper script for easy access
+echo "Creating wrapper script..."
+WRAPPER_FILE="$HOME/.local/bin/ulmemory"
+mkdir -p "$HOME/.local/bin"
+
+cat > "$WRAPPER_FILE" << EOF
+#!/bin/bash
+# Ultramemory CLI wrapper - activates venv and runs command
+source "$CONFIG_DIR/venv/bin/activate"
+ulmemory "\$@"
+EOF
+
+chmod +x "$WRAPPER_FILE"
+
+# Add to PATH if not already there
+if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
+    echo ""
+    echo "Adding ~/.local/bin to PATH..."
+
+    # Detect shell and add to appropriate rc file
+    if [ -n "$ZSH_VERSION" ] || [ "$(basename "$SHELL")" = "zsh" ]; then
+        echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.zshrc"
+        SHELL_RC=".zshrc"
+    elif [ -n "$BASH_VERSION" ] || [ "$(basename "$SHELL")" = "bash" ]; then
+        echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
+        SHELL_RC=".bashrc"
+    else
+        echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.profile"
+        SHELL_RC=".profile"
+    fi
+
+    echo "Added PATH to ~/$SHELL_RC"
+    echo "Run: source ~/$SHELL_RC"
+fi
+
 echo ""
 echo "Installation complete!"
-echo "Run 'ulmemory --help' to get started"
+echo ""
+echo "To use ultramemory:"
+echo "  1. Run: source ~/$SHELL_RC (or restart your terminal)"
+echo "  2. Run: ulmemory --help"
+echo ""
+echo "Or use directly:"
+echo "  ~/.local/bin/ulmemory --help"
