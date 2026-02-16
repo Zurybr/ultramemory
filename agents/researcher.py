@@ -1,12 +1,21 @@
 """Enhanced Researcher Agent with multi-source research capabilities."""
 
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 from core.memory import MemorySystem
 from agents.tools.base import ToolResult
 from agents.tools.web_search import WebSearchTool
 from agents.tools.memory_tools import MemoryQueryTool, MemoryAddTool
 from agents.tools.codewiki_tool import CodeWikiTool, MultiSourceResearchTool
+
+
+# Research todo list configuration
+RESEARCH_TODO_PATH = Path.home() / ".ulmemory" / "research" / "todo.md"
+RESEARCH_OUTPUT_DIR = Path.home() / ".ulmemory" / "research" / "reports"
+
+# Ensure directories exist
+RESEARCH_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 
 @dataclass
@@ -271,3 +280,93 @@ class ResearcherAgent:
                 "results": [],
                 "error": str(e),
             }
+
+    # === Research Todo List Methods ===
+
+    def load_todo_list(self) -> list[str]:
+        """Load research todo list from file."""
+        RESEARCH_TODO_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+        if not RESEARCH_TODO_PATH.exists():
+            return []
+
+        content = RESEARCH_TODO_PATH.read_text(encoding="utf-8")
+        topics = []
+
+        for line in content.split("\n"):
+            line = line.strip()
+            if line and not line.startswith("#") and not line.startswith("-"):
+                topics.append(line)
+            elif line.startswith("-"):
+                # Also support - topic format
+                topic = line.lstrip("- ").strip()
+                if topic:
+                    topics.append(topic)
+
+        return topics
+
+    def save_todo_list(self, topics: list[str]):
+        """Save research todo list (removes first item as it's being processed)."""
+        RESEARCH_TODO_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+        remaining = topics[1:]  # Remove first (being processed)
+        content = "# Research Todo List\n\n" + "\n".join(f"- {t}" for t in remaining)
+
+        RESEARCH_TODO_PATH.write_text(content, encoding="utf-8")
+
+    async def research_with_sources(
+        self,
+        query: str,
+        include_scientific: bool = True,
+        include_github: bool = True,
+    ) -> dict[str, Any]:
+        """Research with specific sources.
+
+        Args:
+            query: Research query
+            include_scientific: Include scientific papers (arXiv, etc)
+            include_github: Include GitHub repositories
+
+        Returns:
+            Combined results from all sources
+        """
+        results = {
+            "query": query,
+            "sources_used": [],
+            "web": [],
+            "github": [],
+            "scientific": [],
+            "memory": [],
+        }
+
+        # Memory search
+        mem_result = await self.memory_tool.execute(query=query, limit=10)
+        if mem_result.success:
+            results["memory"] = mem_result.data.get("vector_results", [])
+            results["sources_used"].append("memory")
+
+        # Web search
+        if self.web_tool and self.web_tool.api_key:
+            web_result = await self.web_tool.execute(
+                query=query,
+                max_results=10,
+                search_depth="advanced"
+            )
+            if web_result.success:
+                results["web"] = web_result.data.get("results", [])
+                results["sources_used"].append("web")
+
+        # GitHub search (via CodeWiki)
+        if include_github and self.codewiki_tool:
+            try:
+                github_result = await self.codewiki_tool.execute(
+                    query=query,
+                    limit=10,
+                )
+                if github_result.success:
+                    results["github"] = github_result.data.get("results", [])
+                    results["sources_used"].append("github")
+            except Exception:
+                pass  # Optional source
+
+        return results

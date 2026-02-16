@@ -526,3 +526,138 @@ def run_agent(name: str, args: str, web: bool, deep: bool, sources: str | None):
                     click.echo(f"Custom agents: {', '.join(custom_agents.keys())}")
 
     asyncio.run(_run())
+
+
+# === New Agents Commands ===
+
+@agent_group.command(name="consultant")
+@click.argument("query")
+@click.option("--order", "-o", default="relevance", help="Order by: relevance, date, source")
+@click.option("--limit", "-l", default=10, type=int)
+def run_consultant(query: str, order: str, limit: int):
+    """Run consultant agent for ordered search."""
+
+    async def _run():
+        memory = MemorySystem()
+        from agents.consultant import ConsultantAgent
+        agent = ConsultantAgent(memory)
+
+        result = await agent.query(query, order_by=order, max_results=limit)
+        formatted = agent.format_as_text(result)
+        click.echo(formatted)
+
+    asyncio.run(_run())
+
+
+@agent_group.command(name="proactive")
+def run_proactive():
+    """Run proactive agent to check heartbeat."""
+
+    async def _run():
+        memory = MemorySystem()
+        from agents.proactive import ProactiveAgent
+        agent = ProactiveAgent(memory)
+
+        result = await agent.check_and_execute()
+
+        click.echo(f"\n🤖 Proactive Agent Results:")
+        click.echo(f"   Status: {result['status']}")
+        click.echo(f"   Executed: {result.get('executed', 0)}")
+
+        for r in result.get("results", []):
+            status = "✅" if r["status"] == "success" else "❌"
+            click.echo(f"   {status} {r['task']}")
+
+    asyncio.run(_run())
+
+
+@agent_group.command(name="terminal")
+@click.argument("action", default="dashboard")
+@click.option("--topic", "-t", help="Topic for research guide")
+def run_terminal(action: str, topic: str):
+    """Run terminal agent for interactive CLI."""
+
+    async def _run():
+        memory = MemorySystem()
+        from agents.terminal import TerminalAgent
+        agent = TerminalAgent(memory)
+
+        if action == "dashboard":
+            result = await agent.show_dashboard()
+        elif action == "diagnose":
+            result = await agent.diagnose()
+        elif action == "guide" and topic:
+            result = await agent.guide_research(topic)
+        elif action == "guide":
+            result = await agent.guide_research()
+        elif action == "prds":
+            result = await agent.guide_prd_review()
+        else:
+            result = await agent.show_dashboard()
+
+        click.echo(result)
+
+    asyncio.run(_run())
+
+
+@agent_group.command(name="heartbeat")
+@click.argument("action")
+@click.argument("task", required=False)
+def manage_heartbeat(action: str, task: str | None):
+    """Manage heartbeat tasks."""
+
+    from agents.heartbeat_reader import HeartbeatReader
+
+    hb = HeartbeatReader()
+
+    if action == "list":
+        data = hb.read()
+        click.echo("\n📋 Tareas Pendientes:")
+        for i, t in enumerate(data["tasks"], 1):
+            status = "✅" if t["completed"] else "⬜"
+            tags = " ".join(f"#{tag}" for tag in t.get("tags", []))
+            click.echo(f"   {status} {i}. {t['title']} {tags}")
+
+    elif action == "add" and task:
+        import re
+        tags = re.findall(r'#(\w+)', task)
+        title = re.sub(r'#\w+', '', task).strip()
+
+        hb.add_task(title, tags)
+        click.echo(f"✅ Tarea agregada: {title}")
+
+    elif action == "complete" and task:
+        hb.mark_completed(task)
+        click.echo(f"✅ Tarea completada: {task}")
+
+    else:
+        click.echo("Usage: ulmemory agent heartbeat <list|add|complete> [task]")
+
+
+@agent_group.command(name="prd")
+@click.argument("action")
+@click.argument("research_file", required=False)
+@click.option("--title", "-t", help="PRD title")
+def manage_prd(action: str, research_file: str | None, title: str | None):
+    """Manage PRD generation."""
+
+    from agents.prd_generator import PRDGeneratorAgent
+
+    async def _run():
+        memory = MemorySystem()
+        agent = PRDGeneratorAgent(memory)
+
+        if action == "generate" and research_file:
+            result = agent.generate_prd(research_file, title)
+            click.echo(f"✅ PRD generado: {result.get('prd_file')}")
+
+        elif action == "list":
+            prds = agent.list_prds()
+            click.echo("\n📄 PRDs:")
+            for prd in prds:
+                click.echo(f"   - {prd['title']} [{prd.get('status', 'draft')}]")
+
+        else:
+            click.echo("Usage: ulmemory agent prd <generate|list> [research_file]")
+
+    asyncio.run(_run())

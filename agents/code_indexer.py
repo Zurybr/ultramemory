@@ -28,7 +28,7 @@ class CodeIndexerAgent:
         category: str | None = None,
         force: bool = False,
         exclude_patterns: list[str] | None = None,
-        limit: int = 100
+        limit: int | None = None
     ) -> dict[str, Any]:
         """Index a GitHub repository.
 
@@ -37,7 +37,7 @@ class CodeIndexerAgent:
             category: Repository category
             force: Force re-index of all files
             exclude_patterns: Additional exclude patterns
-            limit: Max files to index per run
+            limit: Max files to index (None = no limit)
 
         Returns:
             Dictionary with indexing results
@@ -68,8 +68,9 @@ class CodeIndexerAgent:
             # Get file list
             files = self.github.get_file_list(repo_dir, exclude_patterns)
 
-            # Limit files
-            files = files[:limit]
+            # Limit files (if specified)
+            if limit:
+                files = files[:limit]
 
             # Index files
             indexed = 0

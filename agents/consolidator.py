@@ -1,6 +1,7 @@
 """Consolidator Agent - reorganizes and deduplicates memory."""
 
 import re
+from datetime import datetime
 from typing import Any
 from core.memory import MemorySystem
 
@@ -356,3 +357,114 @@ class ConsolidatorAgent:
         """Merge related entities in the graph."""
         # Graph consolidation handles this internally
         return 0
+
+    # === Insight Generation Methods ===
+
+    async def generate_insights(self) -> dict[str, Any]:
+        """Generate insights from memory connections.
+
+        Analyzes relationships and generates actionable insights.
+        """
+        insights = {
+            "generated_at": datetime.now().isoformat(),
+            "insights": [],
+            "patterns_found": 0,
+        }
+
+        try:
+            # Get all documents
+            all_docs = await self.memory.qdrant.get_all(limit=5000)
+
+            if not all_docs:
+                return insights
+
+            # Find common topics (simple frequency analysis)
+            topics = {}
+            for doc in all_docs:
+                content = doc.get("content", "")
+                metadata = doc.get("metadata", {})
+
+                # Extract tags if present
+                tags = metadata.get("tags", [])
+                for tag in tags:
+                    topics[tag] = topics.get(tag, 0) + 1
+
+            # Get top topics
+            top_topics = sorted(topics.items(), key=lambda x: x[1], reverse=True)[:10]
+
+            if top_topics:
+                insights["patterns_found"] = len(top_topics)
+                insights["insights"].append({
+                    "type": "common_topics",
+                    "description": "Most frequent topics in memory",
+                    "data": [{"topic": t, "count": c} for t, c in top_topics],
+                })
+
+            # Find connected concepts (simple co-occurrence)
+            if len(all_docs) > 10:
+                # Sample some documents to find patterns
+                sample = all_docs[:100]
+                word_freq = {}
+
+                for doc in sample:
+                    content = doc.get("content", "").lower()
+                    words = content.split()
+                    unique_words = set(words)
+
+                    for word in unique_words:
+                        if len(word) > 5:  # Skip short words
+                            word_freq[word] = word_freq.get(word, 0) + 1
+
+                top_words = sorted(word_freq.items(), key=lambda x: x[1], reverse=True)[:20]
+
+                if top_words:
+                    insights["insights"].append({
+                        "type": "key_concepts",
+                        "description": "Most frequent significant terms",
+                        "data": [{"term": w, "frequency": f} for w, f in top_words],
+                    })
+
+            # Save insights to memory
+            insight_text = self._format_insights(insights)
+            await self.memory.add(
+                insight_text,
+                metadata={
+                    "type": "insight",
+                    "generated_by": "consolidator",
+                },
+            )
+
+            insights["saved_to_memory"] = True
+
+        except Exception as e:
+            insights["error"] = str(e)
+
+        return insights
+
+    def _format_insights(self, insights: dict) -> str:
+        """Format insights as markdown."""
+        lines = [
+            "# Insights Generados",
+            "",
+            f"Fecha: {insights['generated_at']}",
+            "",
+        ]
+
+        for insight in insights.get("insights", []):
+            lines.extend([
+                f"## {insight['type'].replace('_', ' ').title()}",
+                "",
+                insight["description"],
+                "",
+            ])
+
+            if insight["type"] == "common_topics":
+                for item in insight["data"][:5]:
+                    lines.append(f"- **{item['topic']}**: {item['count']} ocurrencias")
+            elif insight["type"] == "key_concepts":
+                for item in insight["data"][:10]:
+                    lines.append(f"- {item['term']}: {item['frequency']} menciones")
+
+            lines.append("")
+
+        return "\n".join(lines)

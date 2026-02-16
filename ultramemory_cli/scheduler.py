@@ -405,3 +405,73 @@ def run_command(task_id: int):
     _save_schedules(schedules)
 
     click.echo(f"\n✅ Task completed")
+
+
+# === New Schedule Commands ===
+
+@schedule_group.command(name="add-proactive")
+def add_proactive_schedule():
+    """Add proactive agent schedule (every 30 minutes)."""
+    schedules = _load_schedules()
+
+    task = {
+        "id": _get_next_id(),
+        "name": "proactive-heartbeat",
+        "agent": "proactive",
+        "cron": "*/30 * * * *",
+        "args": "",
+        "enabled": True,
+        "created": datetime.now().isoformat(),
+    }
+
+    schedules.append(task)
+    _save_schedules(schedules)
+    _sync_to_crontab()
+
+    click.echo("✅ Proactive agent scheduled: cada 30 minutos")
+
+
+@schedule_group.command(name="add-researcher")
+@click.option("--cron", "-c", default="0 * * * *", help="Cron (default: hourly)")
+def add_researcher_schedule(cron: str):
+    """Add researcher agent schedule."""
+    schedules = _load_schedules()
+
+    task = {
+        "id": _get_next_id(),
+        "name": "researcher-hourly",
+        "agent": "auto-researcher",
+        "cron": cron,
+        "args": "",
+        "enabled": True,
+        "created": datetime.now().isoformat(),
+    }
+
+    schedules.append(task)
+    _save_schedules(schedules)
+    _sync_to_crontab()
+
+    click.echo(f"✅ Researcher agent scheduled: {_cron_to_human(cron)}")
+
+
+@schedule_group.command(name="add-consolidator")
+@click.option("--hour", "-h", default=5, type=int, help="Hour (default: 5am)")
+def add_consolidator_schedule(hour: int):
+    """Add consolidator agent schedule (daily)."""
+    schedules = _load_schedules()
+
+    task = {
+        "id": _get_next_id(),
+        "name": "consolidator-daily",
+        "agent": "consolidator",
+        "cron": f"0 {hour} * * *",
+        "args": "",
+        "enabled": True,
+        "created": datetime.now().isoformat(),
+    }
+
+    schedules.append(task)
+    _save_schedules(schedules)
+    _sync_to_crontab()
+
+    click.echo(f"✅ Consolidator scheduled: daily at {hour}:00")
