@@ -43,23 +43,66 @@ def _get_next_id() -> int:
 
 
 def _cron_to_human(cron: str) -> str:
-    """Convert cron expression to human readable."""
+    """Convert cron expression to human readable Spanish."""
     parts = cron.split()
     if len(parts) != 5:
         return cron
 
     minute, hour, day_month, month, day_week = parts
+    days = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"]
 
-    # Common patterns
+    # Every N hours: 0 */N * * *
+    if minute == "0" and hour.startswith("*/") and day_month == "*" and month == "*" and day_week == "*":
+        n = hour[2:]
+        return f"Cada {n} horas"
+
+    # Every N minutes: */N * * * *
+    if minute.startswith("*/") and hour == "*" and day_month == "*" and month == "*" and day_week == "*":
+        n = minute[2:]
+        return f"Cada {n} minutos"
+
+    # Every hour: 0 * * * *
     if minute == "0" and hour == "*" and day_month == "*" and month == "*" and day_week == "*":
         return "Cada hora"
-    if minute == "0" and hour.isdigit() and day_month == "*" and month == "*" and day_week == "*":
-        return f"Cada día a las {hour}:00"
-    if minute == "0" and hour.isdigit() and day_month == "*" and month == "*" and day_week.isdigit():
-        days = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"]
-        return f"Cada {days[int(day_week)]} a las {hour}:00"
-    if minute == "0" and hour.isdigit() and day_month.isdigit() and month == "*" and day_week == "*":
-        return f"Cada mes el día {day_month} a las {hour}:00"
+
+    # Daily at specific time: M H * * *
+    if minute.isdigit() and hour.isdigit() and day_month == "*" and month == "*" and day_week == "*":
+        m = int(minute)
+        h = int(hour)
+        time_str = f"{h:02d}:{m:02d}"
+        if m == 0:
+            time_str = f"{h}:00"
+        return f"Cada día a las {time_str}"
+
+    # Weekly on specific day: M H * * D
+    if minute.isdigit() and hour.isdigit() and day_month == "*" and month == "*" and day_week.isdigit():
+        m = int(minute)
+        h = int(hour)
+        day_name = days[int(day_week)]
+        time_str = f"{h}:{m:02d}" if m > 0 else f"{h}:00"
+        return f"Cada {day_name} a las {time_str}"
+
+    # Monthly on specific day: M H D * *
+    if minute.isdigit() and hour.isdigit() and day_month.isdigit() and month == "*" and day_week == "*":
+        m = int(minute)
+        h = int(hour)
+        d = int(day_month)
+        time_str = f"{h}:{m:02d}" if m > 0 else f"{h}:00"
+        return f"Día {d} de cada mes a las {time_str}"
+
+    # Weekdays only: M H * * 1-5
+    if day_week == "1-5":
+        m = int(minute)
+        h = int(hour)
+        time_str = f"{h}:{m:02d}" if m > 0 else f"{h}:00"
+        return f"Días laborales a las {time_str}"
+
+    # Weekends: M H * * 0,6
+    if day_week in ["0,6", "6,0"]:
+        m = int(minute)
+        h = int(hour)
+        time_str = f"{h}:{m:02d}" if m > 0 else f"{h}:00"
+        return f"Fines de semana a las {time_str}"
 
     return cron
 
@@ -176,20 +219,33 @@ def list_command(show_all: bool):
         click.echo("\nCreate one with: ulmemory schedule add <agent> --cron '<expression>'")
         return
 
-    click.echo("\n📋 Scheduled Tasks:\n")
-    click.echo(f"{'ID':<4} {'Name':<25} {'Agent':<15} {'Schedule':<20} {'Status':<8}")
-    click.echo("-" * 75)
+    click.echo("\n╔══════════════════════════════════════════════════════════════════════╗")
+    click.echo("║                          📋 SCHEDULED TASKS                           ║")
+    click.echo("╚══════════════════════════════════════════════════════════════════════╝")
 
     for task in schedules:
         if not show_all and not task.get("enabled", True):
             continue
 
-        status = "✅ Enabled" if task.get("enabled", True) else "❌ Disabled"
+        status = "✅ Activo" if task.get("enabled", True) else "❌ Inactivo"
         cron_human = _cron_to_human(task["cron"])
+        cron_expr = task["cron"]
 
-        click.echo(f"{task['id']:<4} {task['name'][:24]:<25} {task['agent']:<15} {cron_human:<20} {status:<8}")
+        click.echo(f"\n┌─────────────────────────────────────────────────────────────────────┐")
+        click.echo(f"│  #{task['id']:<3} {task['name'][:40]:<43} │")
+        click.echo(f"├─────────────────────────────────────────────────────────────────────┤")
+        click.echo(f"│  🤖 Agente: {task['agent']:<52}│")
+        click.echo(f"│  ⏰ Horario: {cron_human:<51}│")
+        click.echo(f"│  📝 Cron:    {cron_expr:<51}│")
+        click.echo(f"│  📊 Estado:  {status:<51}│")
 
-    click.echo(f"\n💡 Use 'ulmemory schedule show <id>' for details")
+        if task.get("args"):
+            args_display = task["args"][:50] + "..." if len(task["args"]) > 50 else task["args"]
+            click.echo(f"│  📎 Args:    {args_display:<51}│")
+
+        click.echo(f"└─────────────────────────────────────────────────────────────────────┘")
+
+    click.echo(f"\n💡 Comandos: show <id> | edit <id> | run <id> | remove <id>")
 
 
 @schedule_group.command(name="show")

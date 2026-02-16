@@ -13,5 +13,18 @@ def open_dashboard(port: int):
     """Open Grafana dashboard."""
     grafana_url = settings.services.get("grafana", f"http://localhost:{port}")
 
-    click.echo(f"Opening dashboard at: {grafana_url}")
+    # Get credentials from settings
+    grafana_creds = settings.credentials.get("grafana", {})
+    username = grafana_creds.get("user", "admin")
+    password = grafana_creds.get("pass", "admin")
+
+    click.echo("\n╔══════════════════════════════════════════════════════╗")
+    click.echo("║               📊 GRAFANA DASHBOARD                   ║")
+    click.echo("╚══════════════════════════════════════════════════════╝")
+    click.echo(f"\n  🔗 URL:      {grafana_url}")
+    click.echo(f"  👤 Usuario:  {username}")
+    click.echo(f"  🔑 Password: {password}")
+    click.echo("\n  ⚠️  Cambia las credenciales por defecto en producción!")
+    click.echo("")
+
     webbrowser.open(grafana_url)
