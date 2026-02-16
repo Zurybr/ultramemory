@@ -159,3 +159,85 @@ def config_agent(name: str):
             skills["schedule"] = new_schedule
             (agent_path / "skills.json").write_text(json.dumps(skills, indent=2))
             click.echo("Skills updated.")
+
+
+@agent_group.command(name="run")
+@click.argument("name")
+@click.argument("args", required=False, default="")
+def run_agent(name: str, args: str):
+    """Run an agent (system or custom).
+
+    System agents: librarian, researcher, consolidator, auto-researcher
+    Custom agents: any agent created with 'ulmemory agent create'
+
+    \b
+    Examples:
+        ulmemory agent run consolidator
+        ulmemory agent run librarian "/path/to/file.txt"
+        ulmemory agent run researcher "search query"
+        ulmemory agent run auto-researcher "topic:AI,topic:ML"
+        ulmemory agent run my-custom-agent "input data"
+    """
+    async def _run():
+        memory = MemorySystem()
+
+        # System agents
+        if name == "consolidator":
+            from agents.consolidator import ConsolidatorAgent
+            agent = ConsolidatorAgent(memory)
+            result = await agent.consolidate()
+            click.echo(f"✅ Consolidation complete:")
+            click.echo(f"   Duplicates removed: {result.get('duplicates_removed', 0)}")
+            click.echo(f"   Malformed fixed: {result.get('malformed_fixed', 0)}")
+
+        elif name == "librarian":
+            from agents.librarian import LibrarianAgent
+            agent = LibrarianAgent(memory)
+            if args:
+                path = Path(args)
+                if path.exists():
+                    result = await agent.add(path)
+                else:
+                    result = await agent.add(args)
+                click.echo(f"✅ Added: {result['chunks_created']} chunks")
+            else:
+                click.echo("❌ Librarian requires input (text or file path)")
+
+        elif name == "researcher":
+            from agents.researcher import ResearcherAgent
+            agent = ResearcherAgent(memory)
+            if args:
+                result = await agent.query(args)
+                click.echo(f"\nFound {len(result['results'])} results:")
+                for i, r in enumerate(result["results"], 1):
+                    click.echo(f"{i}. {r.get('content', '')[:100]}...")
+                    click.echo(f"   Score: {r.get('score', 'N/A')}\n")
+            else:
+                click.echo("❌ Researcher requires a query")
+
+        elif name == "auto-researcher":
+            from agents.auto_researcher import AutoResearcherAgent
+            agent = AutoResearcherAgent(memory)
+            topics = [t.strip() for t in args.split(",") if t.strip()] if args else ["general"]
+            result = await agent.research(topics)
+            click.echo(f"✅ Research complete: {result['output_dir']}")
+
+        else:
+            # Try custom agent
+            custom_agents = settings.get("agents.custom", {})
+            if name in custom_agents:
+                agent_path = Path(custom_agents[name]["path"])
+                agent = CustomAgent(
+                    name=name,
+                    md_path=agent_path / "README.md",
+                    skill_path=agent_path / "skills.json" if (agent_path / "skills.json").exists() else None,
+                )
+                result = await agent.run(args, memory)
+                click.echo(f"✅ Result: {result}")
+            else:
+                click.echo(f"❌ Agent '{name}' not found")
+                click.echo("Available agents: librarian, researcher, consolidator, auto-researcher")
+                if custom_agents:
+                    click.echo(f"Custom agents: {', '.join(custom_agents.keys())}")
+
+    asyncio.run(_run())

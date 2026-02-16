@@ -1,0 +1,351 @@
+"""Scheduler for automated agent tasks."""
+
+import asyncio
+import json
+import subprocess
+from datetime import datetime
+from pathlib import Path
+from typing import Any
+
+import click
+
+SCHEDULES_DIR = Path.home() / ".ulmemory" / "schedules"
+SCHEDULES_FILE = SCHEDULES_DIR / "tasks.json"
+
+
+def _ensure_schedules_dir():
+    """Ensure schedules directory exists."""
+    SCHEDULES_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _load_schedules() -> list[dict[str, Any]]:
+    """Load scheduled tasks from file."""
+    _ensure_schedules_dir()
+    if SCHEDULES_FILE.exists():
+        with open(SCHEDULES_FILE) as f:
+            return json.load(f)
+    return []
+
+
+def _save_schedules(schedules: list[dict[str, Any]]):
+    """Save scheduled tasks to file."""
+    _ensure_schedules_dir()
+    with open(SCHEDULES_FILE, "w") as f:
+        json.dump(schedules, f, indent=2)
+
+
+def _get_next_id() -> int:
+    """Get next available task ID."""
+    schedules = _load_schedules()
+    if not schedules:
+        return 1
+    return max(s["id"] for s in schedules) + 1
+
+
+def _cron_to_human(cron: str) -> str:
+    """Convert cron expression to human readable."""
+    parts = cron.split()
+    if len(parts) != 5:
+        return cron
+
+    minute, hour, day_month, month, day_week = parts
+
+    # Common patterns
+    if minute == "0" and hour == "*" and day_month == "*" and month == "*" and day_week == "*":
+        return "Cada hora"
+    if minute == "0" and hour.isdigit() and day_month == "*" and month == "*" and day_week == "*":
+        return f"Cada día a las {hour}:00"
+    if minute == "0" and hour.isdigit() and day_month == "*" and month == "*" and day_week.isdigit():
+        days = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"]
+        return f"Cada {days[int(day_week)]} a las {hour}:00"
+    if minute == "0" and hour.isdigit() and day_month.isdigit() and month == "*" and day_week == "*":
+        return f"Cada mes el día {day_month} a las {hour}:00"
+
+    return cron
+
+
+def _sync_to_crontab():
+    """Sync schedules to system crontab."""
+    schedules = _load_schedules()
+    venv_python = Path.home() / ".ulmemory" / "venv" / "bin" / "python"
+
+    # Get current ulmemory crontab entries
+    result = subprocess.run(["crontab", "-l"], capture_output=True, text=True)
+    current_cron = result.stdout if result.returncode == 0 else ""
+
+    # Filter out old ulmemory entries
+    lines = [l for l in current_cron.split("\n") if "ulmemory-schedule" not in l and "ULMEMORY_TASK_ID" not in l]
+
+    # Add new entries
+    for schedule in schedules:
+        if not schedule.get("enabled", True):
+            continue
+
+        cron = schedule["cron"]
+        task_id = schedule["id"]
+        agent = schedule["agent"]
+        args = schedule.get("args", "")
+
+        # Create command that runs the agent
+        cmd = f'{venv_python} -m ultramemory_cli.main agent run {agent} "{args}" >> /tmp/ulmemory-task-{task_id}.log 2>&1'
+
+        # Add with comment for identification
+        lines.append(f"# ULMEMORY_TASK_ID={task_id}")
+        lines.append(f"{cron} {cmd}")
+
+    # Install new crontab
+    new_cron = "\n".join(lines)
+    subprocess.run(["crontab", "-"], input=new_cron, text=True, capture_output=True)
+
+
+@click.group(name="schedule")
+def schedule_group():
+    """Schedule automated agent tasks.
+
+    Examples:
+        ulmemory schedule add consolidator --cron "0 3 * * *"
+        ulmemory schedule list
+        ulmemory schedule remove 1
+    """
+    pass
+
+
+@schedule_group.command(name="add")
+@click.argument("agent")
+@click.option("--cron", "-c", required=True, help="Cron expression (e.g., '0 3 * * *' for 3am daily)")
+@click.option("--args", "-a", default="", help="Arguments for the agent")
+@click.option("--name", "-n", help="Friendly name for the task")
+@click.option("--enable/--disable", default=True, help="Enable or disable the task")
+def add_command(agent: str, cron: str, args: str, name: str | None, enable: bool):
+    """Add a scheduled task.
+
+    AGENT is the agent to run (e.g., consolidator, librarian, researcher).
+
+    \b
+    Cron format:
+        ┌───────────── minuto (0-59)
+        │ ┌───────────── hora (0-23)
+        │ │ ┌───────────── día del mes (1-31)
+        │ │ │ ┌───────────── mes (1-12)
+        │ │ │ │ ┌───────────── día semana (0-6, 0=domingo)
+        │ │ │ │ │
+        * * * * *
+
+    \b
+    Examples:
+        ulmemory schedule add consolidator --cron "0 3 * * *"
+        ulmemory schedule add librarian --cron "0 */6 * * *" --args "/path/to/docs"
+        ulmemory schedule add researcher --cron "0 9 * * 1" --args "topic:AI"
+    """
+    schedules = _load_schedules()
+    task_id = _get_next_id()
+
+    task = {
+        "id": task_id,
+        "name": name or f"{agent}-task-{task_id}",
+        "agent": agent,
+        "cron": cron,
+        "args": args,
+        "enabled": enable,
+        "created": datetime.now().isoformat(),
+        "last_run": None,
+        "next_run": None,
+    }
+
+    schedules.append(task)
+    _save_schedules(schedules)
+    _sync_to_crontab()
+
+    click.echo(f"✅ Task created successfully!")
+    click.echo(f"\n📋 Task Details:")
+    click.echo(f"   ID: {task_id}")
+    click.echo(f"   Name: {task['name']}")
+    click.echo(f"   Agent: {agent}")
+    click.echo(f"   Schedule: {cron} ({_cron_to_human(cron)})")
+    click.echo(f"   Enabled: {'Yes' if enable else 'No'}")
+
+
+@schedule_group.command(name="list")
+@click.option("--all", "-a", "show_all", is_flag=True, help="Show disabled tasks too")
+def list_command(show_all: bool):
+    """List all scheduled tasks."""
+    schedules = _load_schedules()
+
+    if not schedules:
+        click.echo("No scheduled tasks found.")
+        click.echo("\nCreate one with: ulmemory schedule add <agent> --cron '<expression>'")
+        return
+
+    click.echo("\n📋 Scheduled Tasks:\n")
+    click.echo(f"{'ID':<4} {'Name':<25} {'Agent':<15} {'Schedule':<20} {'Status':<8}")
+    click.echo("-" * 75)
+
+    for task in schedules:
+        if not show_all and not task.get("enabled", True):
+            continue
+
+        status = "✅ Enabled" if task.get("enabled", True) else "❌ Disabled"
+        cron_human = _cron_to_human(task["cron"])
+
+        click.echo(f"{task['id']:<4} {task['name'][:24]:<25} {task['agent']:<15} {cron_human:<20} {status:<8}")
+
+    click.echo(f"\n💡 Use 'ulmemory schedule show <id>' for details")
+
+
+@schedule_group.command(name="show")
+@click.argument("task_id", type=int)
+def show_command(task_id: int):
+    """Show details of a scheduled task."""
+    schedules = _load_schedules()
+    task = next((t for t in schedules if t["id"] == task_id), None)
+
+    if not task:
+        click.echo(f"❌ Task {task_id} not found")
+        return
+
+    click.echo(f"\n📋 Task #{task_id}: {task['name']}")
+    click.echo("=" * 50)
+    click.echo(f"   Agent: {task['agent']}")
+    click.echo(f"   Cron: {task['cron']}")
+    click.echo(f"   Schedule: {_cron_to_human(task['cron'])}")
+    click.echo(f"   Args: {task.get('args', 'none')}")
+    click.echo(f"   Enabled: {'Yes' if task.get('enabled', True) else 'No'}")
+    click.echo(f"   Created: {task.get('created', 'unknown')}")
+    click.echo(f"   Last run: {task.get('last_run', 'never')}")
+
+    log_file = f"/tmp/ulmemory-task-{task_id}.log"
+    click.echo(f"\n📄 Log file: {log_file}")
+
+
+@schedule_group.command(name="remove")
+@click.argument("task_id", type=int)
+@click.option("--force", "-f", is_flag=True, help="Skip confirmation")
+def remove_command(task_id: int, force: bool):
+    """Remove a scheduled task."""
+    schedules = _load_schedules()
+    task = next((t for t in schedules if t["id"] == task_id), None)
+
+    if not task:
+        click.echo(f"❌ Task {task_id} not found")
+        return
+
+    if not force:
+        if not click.confirm(f"Remove task '{task['name']}' (#{task_id})?"):
+            click.echo("Cancelled.")
+            return
+
+    schedules = [t for t in schedules if t["id"] != task_id]
+    _save_schedules(schedules)
+    _sync_to_crontab()
+
+    click.echo(f"✅ Task #{task_id} removed")
+
+
+@schedule_group.command(name="enable")
+@click.argument("task_id", type=int)
+def enable_command(task_id: int):
+    """Enable a scheduled task."""
+    schedules = _load_schedules()
+    for task in schedules:
+        if task["id"] == task_id:
+            task["enabled"] = True
+            _save_schedules(schedules)
+            _sync_to_crontab()
+            click.echo(f"✅ Task #{task_id} enabled")
+            return
+    click.echo(f"❌ Task {task_id} not found")
+
+
+@schedule_group.command(name="disable")
+@click.argument("task_id", type=int)
+def disable_command(task_id: int):
+    """Disable a scheduled task."""
+    schedules = _load_schedules()
+    for task in schedules:
+        if task["id"] == task_id:
+            task["enabled"] = False
+            _save_schedules(schedules)
+            _sync_to_crontab()
+            click.echo(f"✅ Task #{task_id} disabled")
+            return
+    click.echo(f"❌ Task {task_id} not found")
+
+
+@schedule_group.command(name="edit")
+@click.argument("task_id", type=int)
+@click.option("--cron", "-c", help="New cron expression")
+@click.option("--args", "-a", help="New arguments")
+@click.option("--name", "-n", help="New name")
+def edit_command(task_id: int, cron: str | None, args: str | None, name: str | None):
+    """Edit a scheduled task."""
+    schedules = _load_schedules()
+    task = next((t for t in schedules if t["id"] == task_id), None)
+
+    if not task:
+        click.echo(f"❌ Task {task_id} not found")
+        return
+
+    if cron:
+        task["cron"] = cron
+    if args is not None:
+        task["args"] = args
+    if name:
+        task["name"] = name
+
+    _save_schedules(schedules)
+    _sync_to_crontab()
+
+    click.echo(f"✅ Task #{task_id} updated")
+    click.echo(f"   Schedule: {task['cron']} ({_cron_to_human(task['cron'])})")
+
+
+@schedule_group.command(name="logs")
+@click.argument("task_id", type=int)
+@click.option("--tail", "-t", default=20, help="Number of lines to show")
+def logs_command(task_id: int, tail: int):
+    """Show logs for a scheduled task."""
+    log_file = Path(f"/tmp/ulmemory-task-{task_id}.log")
+
+    if not log_file.exists():
+        click.echo(f"No logs found for task #{task_id}")
+        click.echo(f"Log file: {log_file}")
+        return
+
+    result = subprocess.run(["tail", "-n", str(tail), str(log_file)], capture_output=True, text=True)
+    click.echo(f"📄 Logs for task #{task_id} (last {tail} lines):\n")
+    click.echo(result.stdout)
+
+
+@schedule_group.command(name="run")
+@click.argument("task_id", type=int)
+def run_command(task_id: int):
+    """Run a scheduled task immediately."""
+    schedules = _load_schedules()
+    task = next((t for t in schedules if t["id"] == task_id), None)
+
+    if not task:
+        click.echo(f"❌ Task {task_id} not found")
+        return
+
+    click.echo(f"🚀 Running task #{task_id}: {task['name']}...")
+
+    # Run the agent
+    venv_python = Path.home() / ".ulmemory" / "venv" / "bin" / "python"
+    agent = task["agent"]
+    args = task.get("args", "")
+
+    cmd = [str(venv_python), "-m", "ultramemory_cli.main", "agent", "run", agent]
+    if args:
+        cmd.append(args)
+
+    result = subprocess.run(cmd, capture_output=True, text=True)
+
+    click.echo(result.stdout)
+    if result.stderr:
+        click.echo(f"Errors: {result.stderr}")
+
+    # Update last_run
+    task["last_run"] = datetime.now().isoformat()
+    _save_schedules(schedules)
+
+    click.echo(f"\n✅ Task completed")

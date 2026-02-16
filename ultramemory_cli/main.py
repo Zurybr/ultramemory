@@ -129,6 +129,7 @@ from .logs import logs_group
 from .test import test_command
 from .metrics import show_metrics as metrics_command
 from .dashboard import open_dashboard as dashboard_command
+from .scheduler import schedule_group
 
 app.add_command(config_group, name="config")
 app.add_command(memory_group, name="memory")
@@ -137,6 +138,7 @@ app.add_command(logs_group, name="logs")
 app.add_command(test_command, name="test")
 app.add_command(metrics_command, name="metrics")
 app.add_command(dashboard_command, name="dashboard")
+app.add_command(schedule_group, name="schedule")
 
 
 def main():
