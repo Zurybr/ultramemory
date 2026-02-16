@@ -10,8 +10,7 @@ import httpx
 from .settings import settings
 
 
-@click.group()
-@click.version_option(version="0.1.0")
+@click.group(invoke_without_command=False)
 def app():
     """Ultramemory - Hybrid memory system with multi-agent CLI."""
     pass
@@ -92,7 +91,24 @@ def health():
 @app.command(name="status")
 def status():
     """Show detailed status of agents and services."""
-    health()
+    # Note: Don't call health() directly as it causes Click argument issues
+    # Instead, duplicate the health check logic here
+    services = settings.services
+    results = {}
+
+    for name, url in services.items():
+        if name in ["redis", "falkordb", "postgres"]:
+            continue
+        try:
+            health_url = url + "/health" if not url.endswith("/health") else url
+            response = httpx.get(health_url, timeout=5)
+            results[name] = "✓ UP" if response.status_code == 200 else f"✗ {response.status_code}"
+        except Exception:
+            results[name] = "✗ DOWN"
+
+    click.echo("Service Health:")
+    for name, svc_status in results.items():
+        click.echo(f"  {name}: {svc_status}")
 
     click.echo("\nAgent Status:")
     click.echo("  librarian: " + ("✓ registered" if settings.get("agents.librarian") else "○ not registered"))
@@ -100,7 +116,6 @@ def status():
     click.echo("  consolidator: " + ("✓ registered" if settings.get("agents.consolidator") else "○ not registered"))
     click.echo("  auto-researcher: " + ("✓ registered" if settings.get("agents.auto_researcher") else "○ not registered"))
 
-    # Custom agents
     custom_agents = settings.get("agents.custom", {})
     if custom_agents:
         click.echo("\nCustom Agents:")
@@ -127,4 +142,9 @@ app.add_command(dashboard_command, name="dashboard")
 
 
 if __name__ == "__main__":
-    app()
+    # When running with `python -m ultramemory_cli.main`, Python loads the module
+    # as both __main__ and ultramemory_cli.main, creating two separate module objects.
+    # The subcommand imports add commands to ultramemory_cli.main.app, not __main__.app.
+    # So we need to use the app from the ultramemory_cli.main module.
+    import ultramemory_cli.main as _main_mod
+    _main_mod.app()
