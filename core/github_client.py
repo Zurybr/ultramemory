@@ -9,22 +9,118 @@ from pathlib import Path
 from typing import Any
 
 
-# Supported file extensions
+# Supported file extensions - ALL programming languages and text files
+# Index any file that is text/plain (not binary)
 SUPPORTED_EXTENSIONS = {
-    ".py", ".js", ".ts", ".tsx", ".jsx", ".java", ".go", ".rs", ".rb",
-    ".php", ".cs", ".cpp", ".c", ".h", ".swift", ".kt", ".scala", ".sql",
-    ".sh", ".yaml", ".yml", ".json", ".xml", ".md"
+    # Python
+    ".py", ".pyw", ".pyi",
+    # JavaScript/TypeScript
+    ".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".mts", ".cts",
+    # Java/Kotlin
+    ".java", ".kt", ".kts", ".scala", ".groovy",
+    # C/C++
+    ".c", ".cpp", ".cc", ".cxx", ".h", ".hpp", ".hh", ".hxx",
+    # C#
+    ".cs", ".csx",
+    # Go
+    ".go",
+    # Rust
+    ".rs",
+    # Ruby
+    ".rb", ".erb", ".rake",
+    # PHP
+    ".php", ".phtml",
+    # Swift
+    ".swift",
+    # Shell
+    ".sh", ".bash", ".zsh", ".fish",
+    # SQL
+    ".sql",
+    # Data/Config
+    ".yaml", ".yml", ".json", ".toml", ".xml", ".ini", ".cfg", ".conf",
+    # Web
+    ".html", ".htm", ".css", ".scss", ".sass", ".less",
+    # Markdown/Docs
+    ".md", ".markdown", ".txt", ".rst",
+    # Visual Basic / VB6
+    ".vb", ".cls", ".frm", ".bas", ".mod",
+    ".dsr", ".dca", ".dsx",  # VB6 Data Report
+    ".vbp", ".vbg", ".vbw",  # VB6 Project
+    ".ocx",  # VB6 ActiveX Controls
+    # Pascal/Delphi
+    ".pas", ".dpk", ".dpr",
+    # Other languages
+    ".r", ".lua", ".pl", ".pm", ".ex", ".exs", ".erl", ".hs",
+    ".ml", ".fs", ".fsx", ".clj", ".cljs", ".dart", ".elm",
+    ".vue", ".svelte", ".jsx",
+    # Scripts
+    ".ps1", ".psm1", ".bat", ".cmd", ".awk",
+    # Build files
+    ".gradle", ".maven", ".cmake", ".make", ".dockerfile",
+    # Data files
+    ".csv", ".tsv", ".parquet",
+    # Other
+    ".env", ".gitignore", ".dockerignore",
+    # Legacy/Enterprise
+    ".adb", ".ads",  # Ada
+    ".asm", ".s",  # Assembly
+    ".m", ".mm", ".h",  # Objective-C
+    ".f", ".f90", ".f95",  # Fortran
+    ".cob", ".cbl",  # COBOL
+    ".ada",  # Ada
+    ".pro",  # Prolog
+    ".mup",  # MuPAD
+    ".sci", ".sce",  # Scilab
+    ".jl",  # Julia
+    ".nim",  # Nim
+    ".zig",  # Zig
+    ".v",  # Verilog
+    ".sv",  # SystemVerilog
+    ".vhdl",  # VHDL
 }
 
 # Language mapping
 EXTENSION_TO_LANGUAGE = {
-    ".py": "Python", ".js": "JavaScript", ".ts": "TypeScript",
-    ".tsx": "TypeScript", ".jsx": "JavaScript", ".java": "Java",
-    ".go": "Go", ".rs": "Rust", ".rb": "Ruby", ".php": "PHP",
-    ".cs": "C#", ".cpp": "C++", ".c": "C", ".h": "C/C++ Header",
-    ".swift": "Swift", ".kt": "Kotlin", ".scala": "Scala",
-    ".sql": "SQL", ".sh": "Shell", ".yaml": "YAML", ".yml": "YAML",
-    ".json": "JSON", ".xml": "XML", ".md": "Markdown"
+    ".py": "Python", ".pyw": "Python", ".pyi": "Python",
+    ".js": "JavaScript", ".jsx": "JavaScript",
+    ".ts": "TypeScript", ".tsx": "TypeScript",
+    ".mjs": "JavaScript", ".cjs": "JavaScript",
+    ".mts": "TypeScript", ".cts": "TypeScript",
+    ".java": "Java", ".kt": "Kotlin", ".kts": "Kotlin",
+    ".scala": "Scala", ".groovy": "Groovy",
+    ".c": "C", ".cpp": "C++", ".cc": "C++", ".cxx": "C++",
+    ".h": "C/C++ Header", ".hpp": "C++ Header",
+    ".cs": "C#", ".csx": "C# Script",
+    ".go": "Go", ".rs": "Rust",
+    ".rb": "Ruby", ".erb": "Ruby", ".rake": "Rake",
+    ".php": "PHP", ".phtml": "PHP",
+    ".swift": "Swift",
+    ".sh": "Shell", ".bash": "Bash", ".zsh": "Zsh", ".fish": "Fish",
+    ".sql": "SQL",
+    ".yaml": "YAML", ".yml": "YAML", ".json": "JSON",
+    ".toml": "TOML", ".xml": "XML", ".ini": "INI",
+    ".cfg": "Config", ".conf": "Config",
+    ".html": "HTML", ".htm": "HTML", ".css": "CSS",
+    ".scss": "SCSS", ".sass": "Sass", ".less": "Less",
+    ".md": "Markdown", ".markdown": "Markdown",
+    ".txt": "Text", ".rst": "reStructuredText",
+    ".vb": "Visual Basic", ".cls": "VB Class",
+    ".frm": "VB Form", ".bas": "VB Module", ".mod": "VB Module",
+    ".pas": "Pascal", ".dpk": "Delphi Package", ".dpr": "Delphi Project",
+    ".r": "R", ".lua": "Lua", ".pl": "Perl", ".pm": "Perl Module",
+    ".ex": "Elixir", ".exs": "Elixir",
+    ".erl": "Erlang", ".hs": "Haskell",
+    ".ml": "OCaml", ".fs": "F#", ".fsx": "F# Script",
+    ".clj": "Clojure", ".cljs": "ClojureScript",
+    ".dart": "Dart", ".elm": "Elm",
+    ".vue": "Vue", ".svelte": "Svelte",
+    ".ps1": "PowerShell", ".psm1": "PowerShell Module",
+    ".bat": "Batch", ".cmd": "Batch", ".awk": "AWK",
+    ".gradle": "Gradle", ".maven": "Maven", ".cmake": "CMake",
+    ".make": "Make", ".dockerfile": "Dockerfile",
+    ".csv": "CSV", ".tsv": "TSV", ".parquet": "Parquet",
+    ".env": "Env", ".gitignore": "Git Ignore",
+    ".dockerignore": "Docker Ignore"
 }
 
 # Default exclude patterns
@@ -32,7 +128,9 @@ DEFAULT_EXCLUDES = {
     "node_modules", ".git", "__pycache__", ".venv", "venv",
     "dist", "build", ".next", ".nuxt", "target", ".pytest_cache",
     ".mypy_cache", ".tox", ".eggs", "*.egg-info", ".DS_Store",
-    ".idea", ".vscode", "vendor", "bin", "obj"
+    ".idea", ".vscode", "vendor", "bin", "obj",
+    # VB6 compiled files to skip
+    "OBJ", "frx", "DCA", "log"
 }
 
 

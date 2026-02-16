@@ -31,8 +31,9 @@ VALID_CATEGORIES = ["lefarma", "e6labs", "personal", "opensource", "hobby", "tra
 )
 @click.option(
     "-l", "--limit",
-    default=100,
-    help="Max files to index per run (default: 100)"
+    default=None,
+    type=int,
+    help="Max files to index (no limit by default)"
 )
 def code_index_command(
     repo_url: str,
@@ -95,7 +96,7 @@ def code_index_command(
         click.echo(f"Indexing: {repo_full_name}")
         click.echo(f"Category: {selected_category}")
         click.echo(f"Force re-index: {force}")
-        click.echo(f"Max files: {limit}")
+        click.echo(f"Max files: {limit if limit else 'No limit (all files)'}")
         click.echo(f"{'='*50}\n")
 
         # Run indexing
