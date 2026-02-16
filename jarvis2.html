@@ -1,0 +1,1585 @@
+<!DOCTYPE html><html lang="es"><head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Arquitectura de Datos para Asistente Personal Jarvis: Tecnologías de Base de Datos 2026</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""/>
+    <link href="https://fonts.googleapis.com/css2?family=Tiempos+Headline:wght@400;700&amp;family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+
+    <!-- Mermaid -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #1e293b;
+            --secondary: #475569;
+            --accent: #0ea5e9;
+            --muted: #64748b;
+            --background: #f8fafc;
+            --surface: #ffffff;
+            --border: #e2e8f0;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            color: var(--primary);
+            background-color: var(--background);
+            overflow-x: hidden;
+        }
+        
+        .serif {
+            font-family: 'Tiempos Headline', serif;
+        }
+        
+        .toc-fixed {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 280px;
+            height: 100vh;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            overflow-y: auto;
+            z-index: 1000;
+            padding: 2rem 1.5rem;
+        }
+        
+        .main-content {
+            margin-left: 280px;
+            min-height: 100vh;
+        }
+        
+        .hero-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            align-items: center;
+            min-height: 60vh;
+        }
+        
+        .hero-text {
+            z-index: 2;
+        }
+        
+        .hero-visual {
+            position: relative;
+            height: 400px;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+            border-radius: 1rem;
+            overflow: hidden;
+        }
+        
+        .hero-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(45deg, rgba(14, 165, 233, 0.1) 0%, rgba(30, 41, 59, 0.8) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .toc-link {
+            display: block;
+            padding: 0.5rem 0;
+            color: var(--secondary);
+            text-decoration: none;
+            border-left: 2px solid transparent;
+            padding-left: 1rem;
+            margin-left: -1rem;
+            transition: all 0.2s ease;
+        }
+        
+        .toc-link:hover {
+            color: var(--accent);
+            border-left-color: var(--accent);
+        }
+        
+        .toc-link.sub {
+            font-size: 0.875rem;
+            margin-left: 1rem;
+            color: var(--muted);
+        }
+        
+        .section-header {
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            transition: all 0.2s ease;
+        }
+        
+        .card:hover {
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+        
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 2rem 0;
+        }
+        
+        .comparison-table th,
+        .comparison-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .comparison-table th {
+            background: var(--background);
+            font-weight: 600;
+            color: var(--primary);
+        }
+        
+        .highlight-box {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-left: 4px solid #f59e0b;
+            padding: 1.5rem;
+            margin: 2rem 0;
+            border-radius: 0.5rem;
+        }
+        
+        .architecture-diagram {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            padding: 2rem;
+            margin: 2rem 0;
+            text-align: center;
+        }
+        
+        .mermaid-container {
+            display: flex;
+            justify-content: center;
+            min-height: 300px;
+            max-height: 800px;
+            background: var(--surface);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 30px;
+            margin: 30px 0;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mermaid-container .mermaid {
+            width: 100%;
+            max-width: 100%;
+            height: 100%;
+            cursor: grab;
+            transition: transform 0.3s ease;
+            transform-origin: center center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            touch-action: none; /* 防止触摸设备上的默认行为 */
+            -webkit-user-select: none; /* 防止文本选择 */
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        .mermaid-container .mermaid svg {
+            max-width: 100%;
+            height: 100%;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .mermaid-container .mermaid:active {
+            cursor: grabbing;
+        }
+
+        .mermaid-container.zoomed .mermaid {
+            height: 100%;
+            width: 100%;
+            cursor: grab;
+        }
+
+        .mermaid-controls {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            display: flex;
+            gap: 10px;
+            z-index: 20;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 8px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .mermaid-control-btn {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--secondary);
+            font-size: 14px;
+            min-width: 36px;
+            height: 36px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .mermaid-control-btn:hover {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+            transform: translateY(-1px);
+        }
+
+        .mermaid-control-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .citation {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 500;
+            border-bottom: 1px dotted var(--accent);
+        }
+        
+        .citation:hover {
+            border-bottom-style: solid;
+        }
+        
+        @media (max-width: 1024px) {
+            .toc-fixed {
+                display: none;
+            }
+            .main-content {
+                margin-left: 0;
+            }
+            .hero-grid {
+                grid-template-columns: 1fr;
+            }
+            .mermaid-control-btn:not(.reset-zoom) {
+                display: none;
+            }
+            .mermaid-controls {
+                top: auto;
+                bottom: 15px;
+                right: 15px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .hero-text h1 {
+                font-size: 2.5rem;
+                line-height: 1.2;
+            }
+            .hero-text p {
+                font-size: 1.1rem;
+            }
+            .hero-visual {
+                height: 300px;
+            }
+            .container {
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+            .comparison-table {
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+        }
+    </style>
+  <base target="_blank">
+</head>
+
+  <body>
+    <!-- Table of Contents -->
+    <nav class="toc-fixed">
+      <h3 class="text-lg font-semibold mb-4 serif">Índice de Contenidos</h3>
+      <div class="space-y-1 text-sm">
+        <a href="#introduccion" class="toc-link">1. Introducción</a>
+        <a href="#fundamentos" class="toc-link">2. Fundamentos del Sistema</a>
+        <a href="#vectorial" class="toc-link">3. Bases de Datos Vectorial</a>
+        <a href="#grafos" class="toc-link">4. Bases de Datos de Grafos</a>
+        <a href="#cache" class="toc-link">5. Memoria Temporal por Sesión</a>
+        <a href="#integracion" class="toc-link">6. Estrategias de Integración</a>
+        <a href="#seleccion" class="toc-link">7. Criterios de Selección</a>
+        <a href="#optimizacion" class="toc-link">8. Agente de Optimización</a>
+        <a href="#recomendaciones" class="toc-link">9. Recomendaciones</a>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Hero Section -->
+      <section class="bg-white border-b border-gray-200">
+        <div class="container mx-auto px-8 py-12">
+          <div class="hero-grid">
+            <div class="hero-text">
+              <h1 class="text-5xl font-bold serif mb-6 leading-tight">
+                <em class="text-blue-600">Arquitectura de Datos</em>
+                <br/>
+                para Asistente Personal Jarvis
+              </h1>
+              <p class="text-xl text-gray-600 mb-8 leading-relaxed">
+                Guía completa sobre tecnologías de bases de datos para sistemas de memoria multicapa,
+                recuperación semántica y razonamiento relacional en agentes de IA personales.
+              </p>
+              <div class="flex items-center space-x-6 text-sm text-gray-500">
+                <span><i class="fas fa-calendar mr-2"></i>2026</span>
+                <span><i class="fas fa-clock mr-2"></i>Tiempo de lectura: 25 min</span>
+                <span><i class="fas fa-layer-group mr-2"></i>6 capítulos</span>
+              </div>
+            </div>
+
+            <div class="hero-visual">
+              <div class="hero-overlay">
+                <img src="https://kimi-web-img.moonshot.cn/img/media.licdn.com/45a560138b7c9fb680ce66474159be975f1c2547" alt="Diagram of multi-layered AI agent memory architecture" class="w-full h-full object-cover opacity-60" size="large" aspect="wide" query="AI agent memory architecture layers" referrerpolicy="no-referrer" data-modified="1" data-score="0.00"/>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Content Sections -->
+      <div class="container mx-auto px-8 py-12 max-w-6xl">
+        <!-- Introduction -->
+        <section id="introduccion" class="mb-16">
+          <div class="section-header">
+            <h2 class="text-3xl font-bold serif mb-4">1. Introducción</h2>
+            <p class="text-lg text-gray-600">El desafío de construir un asistente personal con capacidades multimodales y optimización autónoma.</p>
+          </div>
+
+          <div class="highlight-box">
+            <h3 class="text-xl font-semibold mb-3">Recomendación General</h3>
+            <p class="text-lg">
+              Para un asistente personal tipo Jarvis con gestión multimodal y optimización periódica,
+              la arquitectura recomendada es: <strong>FalkorDB</strong> (grafo + vector unificado) o
+              <strong>Milvus + FalkorDB</strong> (máxima flexibilidad) para la capa persistente,
+              <strong>Redis Vector</strong> o <strong>Amazon MemoryDB</strong> para caché de sesión,
+              con <strong>Chroma</strong> como opción de transición para prototipado rápido.
+            </p>
+          </div>
+
+          <div class="card">
+            <h3 class="text-xl font-semibold mb-4">El desafío de la memoria en agentes de IA</h3>
+            <p class="mb-4">
+              La arquitectura de memoria para agentes de inteligencia artificial personales como Jarvis
+              representa uno de los desafíos más complejos en el diseño de sistemas de información contemporáneos.
+              A diferencia de las aplicaciones tradicionales que operan con esquemas de datos rígidos y consultas predefinidas,
+              un asistente personal debe gestionar información de naturaleza heterogénea que evoluciona constantemente en el tiempo.
+            </p>
+            <p>
+              La investigación reciente en sistemas de datos para la era de los agentes de IA ha consolidado un modelo de
+              tres capas distintas pero interconectadas: la <strong>memoria de trabajo o contexto inmediato</strong> (caché de sesión),
+              la <strong>memoria semántica de largo plazo</strong> (embeddings vectoriales), y la
+              <strong>memoria episódica-relacional</strong> (grafos de conocimiento).
+              <a href="https://eu.36kr.com/en/p/3631496123122945" class="citation" target="_blank">[41]</a>
+            </p>
+          </div>
+        </section>
+
+        <!-- Fundamentos del Sistema -->
+        <section id="fundamentos" class="mb-16">
+          <div class="section-header">
+            <h2 class="text-3xl font-bold serif mb-4">2. Fundamentos del Sistema de Memoria Multicapa</h2>
+          </div>
+
+          <div class="card">
+            <h3 class="text-xl font-semibold mb-4">Jerarquía de Memoria: Vectorial, Semántica y Episódica</h3>
+            <div class="grid md:grid-cols-3 gap-6 mb-6">
+              <div class="bg-blue-50 p-4 rounded-lg">
+                <h4 class="font-semibold text-blue-900 mb-2">Memoria de Trabajo</h4>
+                <p class="text-sm text-blue-800">Contexto inmediato, latencias <strong>1-10ms</strong>, datos transitorios</p>
+              </div>
+              <div class="bg-green-50 p-4 rounded-lg">
+                <h4 class="font-semibold text-green-900 mb-2">Memoria Semántica</h4>
+                <p class="text-sm text-green-800">Embeddings vectoriales, latencias <strong>10-100ms</strong>, búsqueda ANN</p>
+              </div>
+              <div class="bg-purple-50 p-4 rounded-lg">
+                <h4 class="font-semibold text-purple-900 mb-2">Memoria Episódica</h4>
+                <p class="text-sm text-purple-800">Grafos de conocimiento, <strong>razonamiento multi-salto</strong></p>
+              </div>
+            </div>
+
+            <p>
+              La jerarquía de memoria en sistemas de agentes de IA modernos se organiza en niveles que equilibran
+              velocidad de acceso, capacidad de almacenamiento y complejidad de las operaciones de recuperación.
+              La investigación en arquitecturas de memoria para agentes ha demostrado que la implementación de
+              mecanismos de atención semántica en esta capa puede mejorar significativamente la calidad de las
+              respuestas del agente sin incrementar la latencia percibida por el usuario.
+              <a href="https://github.com/IAAR-Shanghai/Awesome-AI-Memory" class="citation" target="_blank">[40]</a>
+            </p>
+          </div>
+
+          <div class="card">
+            <h3 class="text-xl font-semibold mb-4">Diferenciación entre Recuperación por Similitud y Razonamiento Relacional</h3>
+            <p class="mb-4">
+              La distinción fundamental entre recuperación por similitud vectorial y razonamiento relacional en grafos
+              determina las capacidades cognitivas que un agente de IA puede exhibir. La recuperación vectorial pura
+              pierde aproximadamente el <strong>30-40% de la información relacional relevante</strong> en comparación
+              con representaciones explícitas de grafos.
+              <a href="https://github.com/IAAR-Shanghai/Awesome-AI-Memory" class="citation" target="_blank">[40]</a>
+            </p>
+
+            <div class="bg-gray-50 p-4 rounded-lg mb-4">
+              <h4 class="font-semibold mb-2">Ejemplo de Razonamiento Multi-Salto:</h4>
+              <p class="text-sm text-gray-700">
+                Para responder &#34;¿qué proyectos están liderados por colegas de mi supervisor?&#34;, un sistema de grafos puede:
+              </p>
+              <ol class="text-sm text-gray-700 list-decimal list-inside mt-2">
+                <li>Seguir la relación &#34;trabaja_para&#34; desde el usuario hasta su supervisor</li>
+                <li>Seguir la relación &#34;colega_de&#34; para identificar pares</li>
+                <li>Seguir la relación &#34;lidera&#34; para encontrar proyectos relevantes</li>
+              </ol>
+            </div>
+          </div>
+        </section>
+
+        <!-- Bases de Datos Vectorial -->
+        <section id="vectorial" class="mb-16">
+          <div class="section-header">
+            <h2 class="text-3xl font-bold serif mb-4">3. Base de Datos Vectorial: Almacenamiento de Embeddings Semánticos</h2>
+          </div>
+
+          <div class="card">
+            <h3 class="text-xl font-semibold mb-4">Opciones Líderes para Escalas Empresariales</h3>
+
+            <table class="comparison-table">
+              <thead>
+                <tr>
+                  <th>Plataforma</th>
+                  <th>Filosofía de Diseño</th>
+                  <th>Modelo de Despliegue</th>
+                  <th>Latencia Típica</th>
+                  <th>Escalabilidad Máxima</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Pinecone</strong></td>
+                  <td>Servicio gestionado, mínima fricción</td>
+                  <td>Cloud gestionado (AWS, GCP, Azure)</td>
+                  <td>10-50 ms</td>
+                  <td>Miles de millones de vectores</td>
+                </tr>
+                <tr>
+                  <td><strong>Milvus</strong></td>
+                  <td>Código abierto, máxima flexibilidad</td>
+                  <td>Self-managed, Kubernetes, o Zilliz Cloud</td>
+                  <td>10-100 ms</td>
+                  <td>10+ mil millones de vectores</td>
+                </tr>
+                <tr>
+                  <td><strong>Weaviate</strong></td>
+                  <td>Modularidad, vectorización integrada</td>
+                  <td>Self-managed o Weaviate Cloud</td>
+                  <td>10-50 ms</td>
+                  <td>Miles de millones de vectores</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <p class="text-sm text-gray-600 mt-4">
+              Fuente: <a href="https://brollyai.com/vector-databases-for-generative-ai-applications/" class="citation" target="_blank">[24]</a>
+            </p>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-6">
+            <div class="card">
+              <h3 class="text-xl font-semibold mb-4">Pinecone: Base de Datos Vectorial Gestionada</h3>
+              <div class="mb-4">
+                <h4 class="font-semibold text-green-700 mb-2">Fortalezas:</h4>
+                <ul class="text-sm space-y-1">
+                  <li>• Confiabilidad empresarial con alta disponibilidad</li>
+                  <li>• Filtrado avanzado de metadatos integrado</li>
+                  <li>• Sin gestión de infraestructura</li>
+                  <li>• Escalado automático</li>
+                </ul>
+              </div>
+              <div>
+                <h4 class="font-semibold text-red-700 mb-2">Limitaciones:</h4>
+                <ul class="text-sm space-y-1">
+                  <li>• Costo elevado a gran escala</li>
+                  <li>• Riesgo de vendor lock-in</li>
+                  <li>• Personalización limitada de índices</li>
+                </ul>
+              </div>
+              <p class="text-sm text-gray-600 mt-4">
+                Fuente: <a href="https://brollyai.com/vector-databases-for-generative-ai-applications/" class="citation" target="_blank">[24]</a>
+              </p>
+            </div>
+
+            <div class="card">
+              <h3 class="text-xl font-semibold mb-4">Milvus: Plataforma Vectorial de Código Abierto</h3>
+              <div class="mb-4">
+                <h4 class="font-semibold text-green-700 mb-2">Fortalezas:</h4>
+                <ul class="text-sm space-y-1">
+                  <li>• Flexibilidad de indexación con 10+ estrategias</li>
+                  <li>• Escalabilidad masiva a 10+ mil millones de vectores</li>
+                  <li>• Más de 10 métricas de distancia soportadas</li>
+                  <li>• Arquitectura nativa de nube</li>
+                </ul>
+              </div>
+              <div>
+                <h4 class="font-semibold text-red-700 mb-2">Limitaciones:</h4>
+                <ul class="text-sm space-y-1">
+                  <li>• Complejidad operativa significativa</li>
+                  <li>• Requiere expertise en sistemas distribuidos</li>
+                  <li>• Costo de operación interna elevado</li>
+                </ul>
+              </div>
+              <p class="text-sm text-gray-600 mt-4">
+                Fuente: <a href="https://brollyai.com/vector-databases-for-generative-ai-applications/" class="citation" target="_blank">[24]</a>
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Bases de Datos de Grafos -->
+        <section id="grafos" class="mb-16">
+          <div class="section-header">
+            <h2 class="text-3xl font-bold serif mb-4">4. Base de Datos de Grafos de Conocimiento: Razonamiento Relacional</h2>
+          </div>
+
+          <div class="card">
+            <h3 class="text-xl font-semibold mb-4">FalkorDB: Base de Datos de Grafos Optimizada para Agentes de IA</h3>
+
+            <div class="grid md:grid-cols-2 gap-6 mb-6">
+              <div>
+                <h4 class="font-semibold mb-2">Arquitectura Innovadora</h4>
+                <p class="text-sm mb-4">
+                  Utiliza <strong>matrices de adyacencia dispersas</strong> implementadas en código C optimizado,
+                  eliminando completamente las pausas de garbage collection de soluciones basadas en Java como Neo4j.
+                </p>
+
+                <h4 class="font-semibold mb-2">Capacidades Vectoriales Nativas</h4>
+                <p class="text-sm mb-4">
+                  Implementa <strong>búsqueda de similitud nativa</strong> que se combina con operaciones de grafo en Cypher,
+                  permitiendo expresiones como:
+                  <code>MATCH (d:Document) WHERE vector.similarity(d.embedding, $query_embedding) &gt; 0.8 RETURN d</code>
+                </p>
+              </div>
+
+              <div>
+                <h4 class="font-semibold mb-2">Rendimiento Ultra-bajo</h4>
+                <p class="text-sm mb-4">
+                  <strong>Latencias sub-50ms</strong> para consultas complejas en grafos de 10 millones de nodos y
+                  100 millones de relaciones, gracias a representación compacta que minimiza cache misses.
+                </p>
+
+                <h4 class="font-semibold mb-2">Modelo de Despliegue Flexible</h4>
+                <p class="text-sm">
+                  Open source bajo licencia SSPLv1, con imágenes Docker oficiales y opciones de cloud gestionado
+                  a través de FalkorDB Cloud.
+                </p>
+              </div>
+            </div>
+
+            <p class="text-sm text-gray-600">
+              Fuentes: <a href="https://docs.falkordb.com/" class="citation" target="_blank">[30]</a>,
+              <a href="https://github.com/FalkorDB/FalkorDB" class="citation" target="_blank">[29]</a>,
+              <a href="https://blog.csdn.net/star_nwe/article/details/155133061" class="citation" target="_blank">[33]</a>
+            </p>
+          </div>
+
+          <div class="card">
+            <h3 class="text-xl font-semibold mb-4">Amazon Neptune Analytics: Grafo + Vector en AWS</h3>
+            <p class="mb-4">
+              Amazon Neptune Analytics representa la respuesta de AWS a la creciente demanda de integración entre
+              capacidades de grafo y vectorial en aplicaciones de inteligencia artificial. Su arquitectura se fundamenta
+              en un motor de análisis de grafos distribuido que extiende las capacidades de la base de datos Neptune
+              tradicional con indexación y consulta vectorial nativa.
+              <a href="https://brollyai.com/vector-databases-for-generative-ai-applications/" class="citation" target="_blank">[17]</a>
+            </p>
+
+            <div class="bg-blue-50 p-4 rounded-lg">
+              <h4 class="font-semibold text-blue-900 mb-2">Casos de Uso Prioritarios:</h4>
+              <ul class="text-sm text-blue-800 space-y-1">
+                <li>• Sistemas de razonamiento multi-salto para agentes de IA</li>
+                <li>• Detección de fraude que combina patrones de relación con similitud de comportamiento</li>
+                <li>• Motores de recomendación con preferencias explícitas y patrones de usuarios similares</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <!-- Memoria Temporal por Sesión -->
+        <section id="cache" class="mb-16">
+          <div class="section-header">
+            <h2 class="text-3xl font-bold serif mb-4">5. Memoria Temporal por Sesión: Caché de Alta Velocidad</h2>
+          </div>
+
+          <div class="card">
+            <h3 class="text-xl font-semibold mb-4">Redis Vector: Caché con Capacidades Vectoriales</h3>
+
+            <div class="mb-6">
+              <h4 class="font-semibold mb-2">Funcionalidad</h4>
+              <p class="text-sm mb-4">
+                Redis Vector trae capacidades vectoriales al almacén de datos en memoria más popular del mundo,
+                permitiendo que Redis sirva simultáneamente como almacén de caché tradicional, base de datos vectorial
+                de baja latencia, y plataforma de mensajería para coordinación de agentes.
+              </p>
+
+              <div class="bg-green-50 p-4 rounded-lg">
+                <h4 class="font-semibold text-green-900 mb-2">Rendimiento Reportado:</h4>
+                <p class="text-sm text-green-800">
+                  Redis reporta <strong>latencia sub-100ms</strong> en despliegues de producción,
+                  con Superlinked logrando latencia percentil 95 en <strong>30ms bajo uso intensivo</strong>.
+                </p>
+              </div>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-4 mb-4">
+              <div class="bg-gray-50 p-4 rounded-lg">
+                <h4 class="font-semibold mb-2">Caché Semántico</h4>
+                <p class="text-sm text-gray-700">Reduce costos de LLM hasta 70% en aplicaciones de alto tráfico</p>
+              </div>
+              <div class="bg-gray-50 p-4 rounded-lg">
+                <h4 class="font-semibold mb-2">Memoria de Trabajo</h4>
+                <p class="text-sm text-gray-700">Mantiene estado transitorio de operaciones en curso</p>
+              </div>
+              <div class="bg-gray-50 p-4 rounded-lg">
+                <h4 class="font-semibold mb-2">Personalización</h4>
+                <p class="text-sm text-gray-700">Adapta respuestas basándose en preferencias del usuario</p>
+              </div>
+            </div>
+
+            <p class="text-sm text-gray-600">
+              Fuente: <a href="https://redis.io/blog/best-open-source-vector-databases-comparison/" class="citation" target="_blank">[3]</a>
+            </p>
+          </div>
+
+          <div class="card">
+            <h3 class="text-xl font-semibold mb-4">Amazon MemoryDB: Redis Gestionado de Alta Disponibilidad</h3>
+            <p class="mb-4">
+              Amazon MemoryDB representa la evolución de Redis hacia entornos empresariales críticos,
+              proporcionando <strong>durabilidad garantizada</strong> mientras mantiene la compatibilidad
+              completa con el protocolo Redis.
+            </p>
+
+            <div class="grid md:grid-cols-2 gap-6">
+              <div>
+                <h4 class="font-semibold text-green-700 mb-2">Características Clave:</h4>
+                <ul class="text-sm space-y-1">
+                  <li>• Persistencia multi-AZ que elimina ventana de pérdida de datos</li>
+                  <li>• Latencia sub-10ms para operaciones de lectura y escritura</li>
+                  <li>• Compatibilidad completa con el protocolo Redis</li>
+                  <li>• Separación de almacenamiento y computación</li>
+                </ul>
+              </div>
+
+              <div>
+                <h4 class="font-semibold text-blue-700 mb-2">Casos de Uso Prioritarios:</h4>
+                <ul class="text-sm space-y-1">
+                  <li>• Aplicaciones de sesión LLM</li>
+                  <li>• Actualizaciones de alta frecuencia de memoria de agente</li>
+                  <li>• Consistencia entre sesiones distribuidas geográficamente</li>
+                  <li>• Contadores de frecuencia para personalización</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Estrategias de Integración -->
+        <section id="integracion" class="mb-16">
+          <div class="section-header">
+            <h2 class="text-3xl font-bold serif mb-4">6. Estrategias de Integración y Arquitecturas Recomendadas</h2>
+          </div>
+
+          <div class="architecture-diagram">
+            <h3 class="text-xl font-semibold mb-4">Arquitectura Híbrida: Tres Capas Especializadas</h3>
+            <div class="mermaid-container">
+              <div class="mermaid-controls">
+                <button class="mermaid-control-btn zoom-in" title="放大">
+                  <i class="fas fa-search-plus"></i>
+                </button>
+                <button class="mermaid-control-btn zoom-out" title="缩小">
+                  <i class="fas fa-search-minus"></i>
+                </button>
+                <button class="mermaid-control-btn reset-zoom" title="重置">
+                  <i class="fas fa-expand-arrows-alt"></i>
+                </button>
+                <button class="mermaid-control-btn fullscreen" title="全屏查看">
+                  <i class="fas fa-expand"></i>
+                </button>
+              </div>
+              <div class="mermaid">
+                graph TB
+                A[&#34;Aplicación Jarvis&#34;] --&gt; B[&#34;Capa de Caché de Sesión&#34;]
+                A --&gt; C[&#34;Capa de Memoria Semántica&#34;]
+                A --&gt; D[&#34;Capa de Conocimiento Operativo&#34;]
+
+                B --&gt; E[&#34;Redis / MemoryDB&#34;]
+                B --&gt; F[&#34;Contexto Inmediato &lt;10ms&#34;]
+
+                C --&gt; G[&#34;Milvus / Pinecone&#34;]
+                C --&gt; H[&#34;Embeddings y Búsqueda ANN&#34;]
+
+                D --&gt; I[&#34;FalkorDB / Neptune&#34;]
+                D --&gt; J[&#34;Entidades, Relaciones y Razonamiento&#34;]
+
+                E --&gt; K[&#34;Agente de Optimización&#34;]
+                G --&gt; K
+                I --&gt; K
+
+                style A fill:#e1f5fe,stroke:#0ea5e9,stroke-width:2px,color:#0f172a
+                style B fill:#f3e5f5,stroke:#8b5cf6,stroke-width:2px,color:#0f172a
+                style C fill:#e8f5e8,stroke:#10b981,stroke-width:2px,color:#0f172a
+                style D fill:#fff3e0,stroke:#f59e0b,stroke-width:2px,color:#0f172a
+                style K fill:#fce4ec,stroke:#ec4899,stroke-width:2px,color:#0f172a
+              </div>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-3 gap-6">
+            <div class="card">
+              <h3 class="text-lg font-semibold mb-3 text-purple-700">Capa de Caché de Sesión</h3>
+              <p class="text-sm mb-3"><strong>Tecnología:</strong> Redis / Amazon MemoryDB</p>
+              <p class="text-sm mb-3"><strong>Responsabilidad:</strong> Contexto inmediato, estado transitorio</p>
+              <p class="text-sm"><strong>Latencia:</strong> &lt;10ms garantizada</p>
+            </div>
+
+            <div class="card">
+              <h3 class="text-lg font-semibold mb-3 text-green-700">Capa de Memoria Semántica</h3>
+              <p class="text-sm mb-3"><strong>Tecnología:</strong> Milvus / Pinecone</p>
+              <p class="text-sm mb-3"><strong>Responsabilidad:</strong> Embeddings, búsqueda por similitud</p>
+              <p class="text-sm"><strong>Optimización:</strong> Reindexación periódica</p>
+            </div>
+
+            <div class="card">
+              <h3 class="text-lg font-semibold mb-3 text-orange-700">Capa de Conocimiento Operativo</h3>
+              <p class="text-sm mb-3"><strong>Tecnología:</strong> FalkorDB / Neptune Analytics</p>
+              <p class="text-sm mb-3"><strong>Responsabilidad:</strong> Entidades, relaciones, razonamiento</p>
+              <p class="text-sm"><strong>Capacidad:</strong> Multi-salto y inferencia</p>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3 class="text-xl font-semibold mb-4">Arquitectura Unificada: FalkorDB como Grafo + Vector + Caché</h3>
+            <div class="grid md:grid-cols-2 gap-6">
+              <div>
+                <h4 class="font-semibold text-green-700 mb-2">Ventajas:</h4>
+                <ul class="text-sm space-y-1">
+                  <li>• Simplificación operativa radical</li>
+                  <li>• Consultas Cypher unificadas</li>
+                  <li>• Latencia ultra-baja</li>
+                  <li>• Menor superficie de ataque</li>
+                </ul>
+              </div>
+
+              <div>
+                <h4 class="font-semibold text-red-700 mb-2">Consideraciones:</h4>
+                <ul class="text-sm space-y-1">
+                  <li>• Límites de escalabilidad vertical</li>
+                  <li>• Estrategia de persistencia cuidadosa</li>
+                  <li>• Posible necesidad de complemento para datos históricos</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="bg-yellow-50 p-4 rounded-lg mt-4">
+              <p class="text-sm text-yellow-800">
+                <strong>Nota:</strong> FalkorDB ha demostrado <strong>latencias sub-10 milisegundos</strong> para consultas
+                de grafos complejas mediante su arquitectura de matriz dispersa en memoria y código C optimizado.
+                <a href="https://www.falkordb.com/blog/best-database-for-knowledge-graphs-falkordb-neo4j/" class="citation" target="_blank">[6]</a>
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Criterios de Selección -->
+        <section id="seleccion" class="mb-16">
+          <div class="section-header">
+            <h2 class="text-3xl font-bold serif mb-4">7. Criterios de Selección y Matriz de Decisión</h2>
+          </div>
+
+          <div class="card">
+            <h3 class="text-xl font-semibold mb-4">Factores Determinantes por Componente</h3>
+
+            <div class="overflow-x-auto">
+              <table class="comparison-table">
+                <thead>
+                  <tr>
+                    <th>Factor</th>
+                    <th>Opciones Recomendadas</th>
+                    <th>Consideraciones Clave</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Escala de datos</strong></td>
+                    <td>Chroma (millones), Qdrant/Weaviate (cientos de millones), Milvus/Pinecone (miles de millones)</td>
+                    <td>Proyección de crecimiento a 3-5 años</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Latencia requerida</strong></td>
+                    <td>Qdrant/FalkorDB (&lt;10ms crítico), Milvus/Pinecone (10-100ms interactivo), Chroma (prototipado)</td>
+                    <td>Percepción de usuario en conversación</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Complejidad de consulta</strong></td>
+                    <td>Pinecone/Weaviate (filtros complejos), Milvus (flexibilidad máxima), pgvector (simplicidad SQL)</td>
+                    <td>Necesidad de metadatos estructurados</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-6">
+            <div class="card">
+              <h3 class="text-xl font-semibold mb-4">Recomendaciones por Perfil de Proyecto</h3>
+
+              <div class="space-y-4">
+                <div class="bg-blue-50 p-4 rounded-lg">
+                  <h4 class="font-semibold text-blue-900 mb-2">Equipo Pequeño, Iteración Rápida</h4>
+                  <p class="text-sm text-blue-800">
+                    <strong>Chroma + FalkorDB + Redis</strong>
+                    <br/>
+                    Simplicidad operativa, prototipado inmediato, base de datos unificada
+                  </p>
+                </div>
+
+                <div class="bg-green-50 p-4 rounded-lg">
+                  <h4 class="font-semibold text-green-900 mb-2">Enterprise, Alta Escala</h4>
+                  <p class="text-sm text-green-800">
+                    <strong>Pinecone + Neptune Analytics + MemoryDB</strong>
+                    <br/>
+                    Servicios gestionados, SLA garantizado, mínimo riesgo operativo
+                  </p>
+                </div>
+
+                <div class="bg-yellow-50 p-4 rounded-lg">
+                  <h4 class="font-semibold text-yellow-900 mb-2">Balance Costo-Rendimiento</h4>
+                  <p class="text-sm text-yellow-800">
+                    <strong>Qdrant + FalkorDB + Redis Vector</strong>
+                    <br/>
+                    Excelente relación calidad-precio, control operativo manejable
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3 class="text-xl font-semibold mb-4">Matriz de Decisión para Jarvis</h3>
+
+              <div class="space-y-4">
+                <div>
+                  <h4 class="font-semibold mb-2">¿Requiere razonamiento relacional profundo?</h4>
+                  <div class="text-sm space-y-2">
+                    <p><strong>Sí:</strong> FalkorDB o Neptune Analytics</p>
+                    <p><strong>No:</strong> Weaviate con extensiones de grafo</p>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 class="font-semibold mb-2">¿Anticipa escalas masivas?</h4>
+                  <div class="text-sm space-y-2">
+                    <p><strong>Sí:</strong> Milvus o Pinecone Enterprise</p>
+                    <p><strong>No:</strong> Qdrant o Weaviate</p>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 class="font-semibold mb-2">¿Tiene experticia en operaciones?</h4>
+                  <div class="text-sm space-y-2">
+                    <p><strong>Sí:</strong> Milvus + Neo4j + Redis Cluster</p>
+                    <p><strong>No:</strong> Servicios gestionados</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Agente de Optimización -->
+        <section id="optimizacion" class="mb-16">
+          <div class="section-header">
+            <h2 class="text-3xl font-bold serif mb-4">8. Implementación del Agente de Optimización y Consolidación</h2>
+          </div>
+
+          <div class="card">
+            <h3 class="text-xl font-semibold mb-4">Procesos de Indexación y Reindexación</h3>
+
+            <div class="overflow-x-auto mb-6">
+              <table class="comparison-table">
+                <thead>
+                  <tr>
+                    <th>Categoría de Operación</th>
+                    <th>Descripción</th>
+                    <th>Impacto en Disponibilidad</th>
+                    <th>Frecuencia Típica</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Reconstrucción completa</strong></td>
+                    <td>Regeneración de todos los embeddings con nuevo modelo o estrategia de chunking</td>
+                    <td>Alta: requiere índice shadow y conmutación atómica</td>
+                    <td>Mensual a trimestral</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Reorganización incremental</strong></td>
+                    <td>Optimización de parámetros de índice ANN sin regenerar embeddings</td>
+                    <td>Baja: puede ejecutarse en caliente</td>
+                    <td>Semanal a mensual</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Consolidación de entidades</strong></td>
+                    <td>Detección y fusión de representaciones duplicadas o altamente similares</td>
+                    <td>Media: requiere bloqueo parcial de escrituras</td>
+                    <td>Diaria a semanal</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Purga de datos obsoletos</strong></td>
+                    <td>Eliminación de información no relevante según criterios de antigüedad o acceso</td>
+                    <td>Baja: operaciones de eliminación estándar</td>
+                    <td>Semanal a mensual</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <p>
+              El agente de optimización periódico de Jarvis tiene como función central orquestar estos procesos de
+              consolidación, ejecutándose en intervalos que balancean la frescura del conocimiento con los recursos
+              computacionales requeridos. Las investigaciones sugieren que
+              <strong>ciclos de consolidación en el rango de horas a días</strong> son óptimos para la mayoría de aplicaciones.
+              <a href="https://github.com/IAAR-Shanghai/Awesome-AI-Memory" class="citation" target="_blank">[40]</a>
+            </p>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-6">
+            <div class="card">
+              <h3 class="text-xl font-semibold mb-4">Detección de Fragmentación Semántica</h3>
+              <p class="text-sm mb-4">
+                La fragmentación semántica ocurre cuando embeddings conceptualmente cercanos han divergido en el
+                espacio vectorial. El agente monitorea métricas de calidad de cluster:
+              </p>
+              <ul class="text-sm space-y-1 mb-4">
+                <li>• Silhouette score degradado</li>
+                <li>• Aumento de varianza intra-cluster</li>
+                <li>• Disminución de coherencia en evaluaciones humanas</li>
+              </ul>
+              <p class="text-sm">
+                Cuando se detecta fragmentación, el agente programa <strong>reindexación completa</strong>
+                con modelo actualizado o <strong>reorganización incremental</strong>.
+              </p>
+            </div>
+
+            <div class="card">
+              <h3 class="text-xl font-semibold mb-4">Consolidación de Entidades Duplicadas</h3>
+              <p class="text-sm mb-4">
+                La consolidación aborda duplicación semántica mediante técnicas de entity resolution:
+              </p>
+              <ul class="text-sm space-y-1 mb-4">
+                <li>• <strong>Blocking:</strong> Identificación de candidatos por similitud de embedding</li>
+                <li>• <strong>Scoring:</strong> Similitud compuesta (nombre, atributos, vecindario)</li>
+                <li>• <strong>Fusión:</strong> Unión de nodos con preservación de relaciones</li>
+              </ul>
+              <p class="text-sm">
+                La resolución de conflictos requiere políticas de prioridad por fuente, recencia, o confianza.
+              </p>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3 class="text-xl font-semibold mb-4">Monitoreo y Observabilidad</h3>
+
+            <div class="grid md:grid-cols-3 gap-4">
+              <div class="bg-blue-50 p-4 rounded-lg">
+                <h4 class="font-semibold text-blue-900 mb-2">Calidad de Recuperación</h4>
+                <ul class="text-sm text-blue-800 space-y-1">
+                  <li>• Precision@K</li>
+                  <li>• Mean Reciprocal Rank (MRR)</li>
+                  <li>• Normalized Discounted Cumulative Gain (NDCG)</li>
+                </ul>
+              </div>
+
+              <div class="bg-green-50 p-4 rounded-lg">
+                <h4 class="font-semibold text-green-900 mb-2">Rendimiento del Sistema</h4>
+                <ul class="text-sm text-green-800 space-y-1">
+                  <li>• Latencia P99</li>
+                  <li>• Throughput (queries/segundo)</li>
+                  <li>• Tasa de cache hit</li>
+                </ul>
+              </div>
+
+              <div class="bg-purple-50 p-4 rounded-lg">
+                <h4 class="font-semibold text-purple-900 mb-2">Consistencia del Grafo</h4>
+                <ul class="text-sm text-purple-800 space-y-1">
+                  <li>• Cobertura de relaciones</li>
+                  <li>• Validez de inferencias</li>
+                  <li>• Coherencia temporal</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Recomendaciones -->
+        <section id="recomendaciones" class="mb-16">
+          <div class="section-header">
+            <h2 class="text-3xl font-bold serif mb-4">9. Recomendaciones para el Proyecto Jarvis</h2>
+          </div>
+
+          <div class="highlight-box">
+            <h3 class="text-xl font-semibold mb-4">Arquitectura Recomendada para Jarvis</h3>
+            <div class="grid md:grid-cols-3 gap-6">
+              <div>
+                <h4 class="font-semibold mb-2">Opción 1: Unificada</h4>
+                <p class="text-sm">
+                  <strong>FalkorDB</strong> como base de datos única para grafo + vector + caché,
+                  con <strong>Redis Vector</strong> para funcionalidades adicionales de mensajería.
+                </p>
+              </div>
+              <div>
+                <h4 class="font-semibold mb-2">Opción 2: Flexibilidad Máxima</h4>
+                <p class="text-sm">
+                  <strong>Milvus</strong> para vector, <strong>FalkorDB</strong> para grafo,
+                  <strong>Redis/MemoryDB</strong> para caché de sesión.
+                </p>
+              </div>
+              <div>
+                <h4 class="font-semibold mb-2">Opción de Transición</h4>
+                <p class="text-sm">
+                  <strong>Chroma</strong> para prototipado rápido, con migración planificada
+                  a solución de producción antes del lanzamiento.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3 class="text-xl font-semibold mb-4">Consideraciones Clave para la Implementación</h3>
+
+            <div class="space-y-6">
+              <div>
+                <h4 class="font-semibold mb-2">1. Gestión Multimodal Integrada</h4>
+                <p class="text-sm">
+                  Implementar espacios de embedding separados por modalidad (texto, imagen, video, código)
+                  con capas de alineación o fusión en el nivel de aplicación. Esto permite seleccionar
+                  modelos óptimos para cada tipo de contenido mientras mantiene coherencia en las consultas.
+                </p>
+              </div>
+
+              <div>
+                <h4 class="font-semibold mb-2">2. Agente de Optimización Autónomo</h4>
+                <p class="text-sm">
+                  Desarrollar un agente que opere como componente de primera clase, capaz de inspeccionar
+                  el estado de los índices, evaluar su calidad, y ejecutar operaciones de mantenimiento
+                  coordinadas con las cargas de trabajo de consulta. Implementar ciclos de consolidación
+                  en el rango de horas a días.
+                </p>
+              </div>
+
+              <div>
+                <h4 class="font-semibold mb-2">3. Razonamiento Multi-Salto Eficiente</h4>
+                <p class="text-sm">
+                  Configurar profundidades de expansión de 2-3 saltos como balance inicial entre cobertura
+                  informativa y eficiencia. Adaptar dinámicamente según el tipo de consulta: 1-2 saltos para
+                  preguntas factuales directas, expansiones más profundas para síntesis compleja con técnicas de poda.
+                </p>
+              </div>
+
+              <div>
+                <h4 class="font-semibold mb-2">4. Monitoreo y Observabilidad Comprehensiva</h4>
+                <p class="text-sm">
+                  Implementar métricas de calidad de recuperación (Precision@K, MRR, NDCG), rendimiento del sistema
+                  (latencia P99, throughput, tasa de cache hit), y consistencia del grafo (cobertura de relaciones,
+                  validez de inferencias). Utilizar estos datos para ajuste automático de configuración y triggers
+                  de mantenimiento preventivo.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="architecture-diagram">
+            <h3 class="text-xl font-semibold mb-4">Flujo de Trabajo del Agente de Optimización</h3>
+            <div class="mermaid-container">
+              <div class="mermaid-controls">
+                <button class="mermaid-control-btn zoom-in" title="放大">
+                  <i class="fas fa-search-plus"></i>
+                </button>
+                <button class="mermaid-control-btn zoom-out" title="缩小">
+                  <i class="fas fa-search-minus"></i>
+                </button>
+                <button class="mermaid-control-btn reset-zoom" title="重置">
+                  <i class="fas fa-expand-arrows-alt"></i>
+                </button>
+                <button class="mermaid-control-btn fullscreen" title="全屏查看">
+                  <i class="fas fa-expand"></i>
+                </button>
+              </div>
+              <div class="mermaid">
+                flowchart TD
+                A[&#34;Inicio Ciclo de Optimización&#34;] --&gt; B[&#34;Monitorear Métricas&#34;]
+                B --&gt; C{&#34;¿Calidad Degradada?&#34;}
+
+                C --&gt;|Sí| D[&#34;Analizar Fragmentación&#34;]
+                C --&gt;|No| E[&#34;Continuar Monitoreo&#34;]
+
+                D --&gt; F[&#34;Planificar Reindexación&#34;]
+                F --&gt; G[&#34;Ejecutar Reconstrucción&#34;]
+                G --&gt; H[&#34;Validar Nuevo Índice&#34;]
+                H --&gt; I[&#34;Conmutar A/B&#34;]
+
+                D --&gt; J[&#34;Detectar Entidades Duplicadas&#34;]
+                J --&gt; K[&#34;Ejecutar Consolidación&#34;]
+                K --&gt; L[&#34;Validar Consistencia&#34;]
+
+                I --&gt; M[&#34;Reportar Resultados&#34;]
+                L --&gt; M
+                M --&gt; N[&#34;Actualizar Parámetros&#34;]
+                N --&gt; E
+
+                style A fill:#e1f5fe,stroke:#0ea5e9,stroke-width:2px,color:#0f172a
+                style C fill:#fff3e0,stroke:#f59e0b,stroke-width:2px,color:#0f172a
+                style G fill:#e8f5e8,stroke:#10b981,stroke-width:2px,color:#0f172a
+                style K fill:#e8f5e8,stroke:#10b981,stroke-width:2px,color:#0f172a
+                style M fill:#f3e5f5,stroke:#8b5cf6,stroke-width:2px,color:#0f172a
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="mt-16 pt-8 border-t border-gray-200">
+          <div class="text-center text-sm text-gray-500">
+            <p>Arquitectura de Datos para Asistente Personal Jarvis</p>
+            <p class="mt-2">Basado en investigación y análisis de tecnologías de base de datos para agentes de IA 2026</p>
+          </div>
+        </footer>
+      </div>
+    </main>
+
+    <script>
+        // Initialize Mermaid
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'base',
+            themeVariables: {
+                // Primary colors with high contrast
+                primaryColor: '#f8fafc',
+                primaryTextColor: '#0f172a',
+                primaryBorderColor: '#475569',
+                
+                // Secondary colors
+                secondaryColor: '#e2e8f0',
+                secondaryTextColor: '#0f172a',
+                secondaryBorderColor: '#64748b',
+                
+                // Tertiary colors
+                tertiaryColor: '#cbd5e1',
+                tertiaryTextColor: '#0f172a',
+                tertiaryBorderColor: '#94a3b8',
+                
+                // Background and text
+                background: '#ffffff',
+                mainBkg: '#f8fafc',
+                secondBkg: '#e2e8f0',
+                tertiaryBkg: '#cbd5e1',
+                
+                // Node-specific colors for better accessibility
+                nodeBkg: '#f8fafc',
+                nodeTextColor: '#0f172a',
+                nodeBorder: '#475569',
+                
+                // Special node colors with high contrast
+                specialBkg: '#dbeafe',
+                specialTextColor: '#1e40af',
+                specialBorder: '#3b82f6',
+                
+                // Warning/Highlight colors
+                warningBkg: '#fef3c7',
+                warningTextColor: '#92400e',
+                warningBorder: '#f59e0b',
+                
+                // Error/Alert colors
+                errorBkg: '#fee2e2',
+                errorTextColor: '#991b1b',
+                errorBorder: '#ef4444',
+                
+                // Success colors
+                successBkg: '#dcfce7',
+                successTextColor: '#166534',
+                successBorder: '#22c55e',
+                
+                // Line and edge colors
+                lineColor: '#64748b',
+                edgeLabelBackground: '#ffffff',
+                
+                // Cluster colors
+                clusterBkg: '#f1f5f9',
+                clusterBorder: '#94a3b8',
+                
+                // Title colors
+                titleColor: '#0f172a',
+                
+                // Font settings
+                fontFamily: 'Inter, sans-serif',
+                fontSize: '14px',
+                fontWeight: '500'
+            },
+            flowchart: {
+                htmlLabels: true,
+                curve: 'basis',
+                padding: 20,
+                nodeSpacing: 50,
+                rankSpacing: 80,
+                diagramPadding: 20,
+                useMaxWidth: true,
+                useMaxHeight: false
+            },
+            graph: {
+                htmlLabels: true,
+                padding: 20,
+                nodeSpacing: 50,
+                rankSpacing: 80,
+                diagramPadding: 20,
+                useMaxWidth: true,
+                useMaxHeight: false
+            },
+            sequence: {
+                diagramMarginX: 50,
+                diagramMarginY: 10,
+                actorMargin: 50,
+                width: 150,
+                height: 65,
+                boxMargin: 10,
+                boxTextMargin: 5,
+                noteMargin: 10,
+                messageMargin: 35,
+                mirrorActors: true,
+                bottomMarginAdj: 1,
+                useMaxWidth: true,
+                useMaxHeight: false
+            },
+            gantt: {
+                leftPadding: 75,
+                rightPadding: 20,
+                topPadding: 50,
+                bottomPadding: 50,
+                gridLineStartPadding: 35,
+                fontSize: 11,
+                sectionFontSize: 24,
+                numberSectionStyles: 4,
+                axisFormat: '%Y-%m-%d',
+                topAxis: true,
+                useMaxWidth: true,
+                useMaxHeight: false
+            }
+        });
+
+        // Initialize Mermaid Controls for zoom and pan
+        function initializeMermaidControls() {
+            const containers = document.querySelectorAll('.mermaid-container');
+
+            containers.forEach(container => {
+            const mermaidElement = container.querySelector('.mermaid');
+            let scale = 1;
+            let isDragging = false;
+            let startX, startY, translateX = 0, translateY = 0;
+
+            // 触摸相关状态
+            let isTouch = false;
+            let touchStartTime = 0;
+            let initialDistance = 0;
+            let initialScale = 1;
+            let isPinching = false;
+
+            // Zoom controls
+            const zoomInBtn = container.querySelector('.zoom-in');
+            const zoomOutBtn = container.querySelector('.zoom-out');
+            const resetBtn = container.querySelector('.reset-zoom');
+            const fullscreenBtn = container.querySelector('.fullscreen');
+
+            function updateTransform() {
+                mermaidElement.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+
+                if (scale > 1) {
+                container.classList.add('zoomed');
+                } else {
+                container.classList.remove('zoomed');
+                }
+
+                mermaidElement.style.cursor = isDragging ? 'grabbing' : 'grab';
+            }
+
+            if (zoomInBtn) {
+                zoomInBtn.addEventListener('click', () => {
+                scale = Math.min(scale * 1.25, 4);
+                updateTransform();
+                });
+            }
+
+            if (zoomOutBtn) {
+                zoomOutBtn.addEventListener('click', () => {
+                scale = Math.max(scale / 1.25, 0.3);
+                if (scale <= 1) {
+                    translateX = 0;
+                    translateY = 0;
+                }
+                updateTransform();
+                });
+            }
+
+            if (resetBtn) {
+                resetBtn.addEventListener('click', () => {
+                scale = 1;
+                translateX = 0;
+                translateY = 0;
+                updateTransform();
+                });
+            }
+
+            if (fullscreenBtn) {
+                fullscreenBtn.addEventListener('click', () => {
+                if (container.requestFullscreen) {
+                    container.requestFullscreen();
+                } else if (container.webkitRequestFullscreen) {
+                    container.webkitRequestFullscreen();
+                } else if (container.msRequestFullscreen) {
+                    container.msRequestFullscreen();
+                }
+                });
+            }
+
+            // Mouse Events
+            mermaidElement.addEventListener('mousedown', (e) => {
+                if (isTouch) return; // 如果是触摸设备，忽略鼠标事件
+
+                isDragging = true;
+                startX = e.clientX - translateX;
+                startY = e.clientY - translateY;
+                mermaidElement.style.cursor = 'grabbing';
+                updateTransform();
+                e.preventDefault();
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (isDragging && !isTouch) {
+                translateX = e.clientX - startX;
+                translateY = e.clientY - startY;
+                updateTransform();
+                }
+            });
+
+            document.addEventListener('mouseup', () => {
+                if (isDragging && !isTouch) {
+                isDragging = false;
+                mermaidElement.style.cursor = 'grab';
+                updateTransform();
+                }
+            });
+
+            document.addEventListener('mouseleave', () => {
+                if (isDragging && !isTouch) {
+                isDragging = false;
+                mermaidElement.style.cursor = 'grab';
+                updateTransform();
+                }
+            });
+
+            // 获取两点之间的距离
+            function getTouchDistance(touch1, touch2) {
+                return Math.hypot(
+                touch2.clientX - touch1.clientX,
+                touch2.clientY - touch1.clientY
+                );
+            }
+
+            // Touch Events - 触摸事件处理
+            mermaidElement.addEventListener('touchstart', (e) => {
+                isTouch = true;
+                touchStartTime = Date.now();
+
+                if (e.touches.length === 1) {
+                // 单指拖动
+                isPinching = false;
+                isDragging = true;
+
+                const touch = e.touches[0];
+                startX = touch.clientX - translateX;
+                startY = touch.clientY - translateY;
+
+                } else if (e.touches.length === 2) {
+                // 双指缩放
+                isPinching = true;
+                isDragging = false;
+
+                const touch1 = e.touches[0];
+                const touch2 = e.touches[1];
+                initialDistance = getTouchDistance(touch1, touch2);
+                initialScale = scale;
+                }
+
+                e.preventDefault();
+            }, { passive: false });
+
+            mermaidElement.addEventListener('touchmove', (e) => {
+                if (e.touches.length === 1 && isDragging && !isPinching) {
+                // 单指拖动
+                const touch = e.touches[0];
+                translateX = touch.clientX - startX;
+                translateY = touch.clientY - startY;
+                updateTransform();
+
+                } else if (e.touches.length === 2 && isPinching) {
+                // 双指缩放
+                const touch1 = e.touches[0];
+                const touch2 = e.touches[1];
+                const currentDistance = getTouchDistance(touch1, touch2);
+
+                if (initialDistance > 0) {
+                    const newScale = Math.min(Math.max(
+                    initialScale * (currentDistance / initialDistance),
+                    0.3
+                    ), 4);
+                    scale = newScale;
+                    updateTransform();
+                }
+                }
+
+                e.preventDefault();
+            }, { passive: false });
+
+            mermaidElement.addEventListener('touchend', (e) => {
+                // 重置状态
+                if (e.touches.length === 0) {
+                isDragging = false;
+                isPinching = false;
+                initialDistance = 0;
+
+                // 延迟重置isTouch，避免鼠标事件立即触发
+                setTimeout(() => {
+                    isTouch = false;
+                }, 100);
+                } else if (e.touches.length === 1 && isPinching) {
+                // 从双指变为单指，切换为拖动模式
+                isPinching = false;
+                isDragging = true;
+
+                const touch = e.touches[0];
+                startX = touch.clientX - translateX;
+                startY = touch.clientY - translateY;
+                }
+
+                updateTransform();
+            });
+
+            mermaidElement.addEventListener('touchcancel', (e) => {
+                isDragging = false;
+                isPinching = false;
+                initialDistance = 0;
+
+                setTimeout(() => {
+                isTouch = false;
+                }, 100);
+
+                updateTransform();
+            });
+
+            // Enhanced wheel zoom with better center point handling
+            container.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const rect = container.getBoundingClientRect();
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+
+                const delta = e.deltaY > 0 ? 0.9 : 1.1;
+                const newScale = Math.min(Math.max(scale * delta, 0.3), 4);
+
+                // Adjust translation to zoom towards center
+                if (newScale !== scale) {
+                const scaleDiff = newScale / scale;
+                translateX = translateX * scaleDiff;
+                translateY = translateY * scaleDiff;
+                scale = newScale;
+
+                if (scale <= 1) {
+                    translateX = 0;
+                    translateY = 0;
+                }
+
+                updateTransform();
+                }
+            });
+
+            // Initialize display
+            updateTransform();
+            });
+        }
+
+        // Initialize controls after mermaid renders
+        setTimeout(() => {
+            initializeMermaidControls();
+        }, 1500);
+
+        // Smooth scrolling for TOC links
+        document.querySelectorAll('.toc-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href').substring(1);
+                const targetElement = document.getElementById(targetId);
+                
+                if (targetElement) {
+                    targetElement.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Highlight active TOC section on scroll
+        window.addEventListener('scroll', function() {
+            const sections = document.querySelectorAll('section[id]');
+            const tocLinks = document.querySelectorAll('.toc-link');
+            
+            let currentSection = '';
+            sections.forEach(section => {
+                const rect = section.getBoundingClientRect();
+                if (rect.top <= 100 && rect.bottom >= 100) {
+                    currentSection = section.id;
+                }
+            });
+            
+            tocLinks.forEach(link => {
+                link.classList.remove('text-blue-600', 'border-blue-600');
+                if (link.getAttribute('href') === '#' + currentSection) {
+                    link.classList.add('text-blue-600', 'border-blue-600');
+                }
+            });
+        });
+    </script>
+  
+
+</body></html>

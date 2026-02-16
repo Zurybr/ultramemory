@@ -1,0 +1,2789 @@
+<!DOCTYPE html><html lang="es"><head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Arquitectura Jarvis: Guía Completa de Asistente Personal Inteligente</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Tiempos+Headline:wght@400;600;700&amp;family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+    <style>
+        :root {
+            --primary: #1e293b;
+            --secondary: #475569;
+            --accent: #3b82f6;
+            --muted: #f8fafc;
+            --border: #e2e8f0;
+        }
+        
+        .font-tiempos { font-family: 'Tiempos Headline', serif; }
+        .font-inter { font-family: 'Inter', sans-serif; }
+        
+        body {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            overflow-x: hidden;
+        }
+        
+        .hero-gradient {
+            background: linear-gradient(135deg, 
+                rgba(30, 41, 59, 0.95) 0%, 
+                rgba(71, 85, 105, 0.9) 50%, 
+                rgba(59, 130, 246, 0.85) 100%);
+        }
+        
+        .toc-fixed {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 280px;
+            height: 100vh;
+            background: rgba(248, 250, 252, 0.98);
+            backdrop-filter: blur(10px);
+            border-right: 1px solid var(--border);
+            z-index: 1000;
+            overflow-y: auto;
+            padding: 2rem 1.5rem;
+        }
+        
+        .main-content {
+            margin-left: 280px;
+            min-height: 100vh;
+        }
+        
+        .toc-link {
+            transition: all 0.2s ease;
+            border-left: 2px solid transparent;
+        }
+        
+        .toc-link:hover {
+            background: rgba(59, 130, 246, 0.1);
+            border-left-color: var(--accent);
+            transform: translateX(4px);
+        }
+        
+        .toc-link.active {
+            background: rgba(59, 130, 246, 0.15);
+            border-left-color: var(--accent);
+            color: var(--accent);
+            font-weight: 600;
+        }
+        
+        .section-divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--border), transparent);
+            margin: 3rem 0;
+        }
+        
+        .data-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            transition: all 0.3s ease;
+        }
+        
+        .data-card:hover {
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            transform: translateY(-2px);
+        }
+        
+        .citation {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s ease;
+        }
+        
+        .citation:hover {
+            color: #1d4ed8;
+            text-decoration: underline;
+        }
+        
+        .performance-bar {
+            height: 8px;
+            background: var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 0.5rem 0;
+        }
+        
+        .performance-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), #60a5fa);
+            border-radius: 4px;
+            transition: width 0.6s ease;
+        }
+        
+        .bento-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+        
+        .bento-item {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+        }
+        
+        @media (max-width: 1024px) {
+            .toc-fixed {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+            
+            .toc-fixed.open {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+            
+            .bento-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* New Mermaid container styles */
+        .mermaid-container {
+            display: flex;
+            justify-content: center;
+            min-height: 300px;
+            max-height: 800px;
+            background: #ffffff;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 30px;
+            margin: 30px 0;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mermaid-container .mermaid {
+            width: 100%;
+            max-width: 100%;
+            height: 100%;
+            cursor: grab;
+            transition: transform 0.3s ease;
+            transform-origin: center center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            touch-action: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        .mermaid-container .mermaid svg {
+            max-width: 100%;
+            height: 100%;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .mermaid-container .mermaid:active {
+            cursor: grabbing;
+        }
+
+        .mermaid-container.zoomed .mermaid {
+            height: 100%;
+            width: 100%;
+            cursor: grab;
+        }
+
+        .mermaid-controls {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            display: flex;
+            gap: 10px;
+            z-index: 20;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 8px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .mermaid-control-btn {
+            background: #ffffff;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            padding: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: #374151;
+            font-size: 14px;
+            min-width: 36px;
+            height: 36px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .mermaid-control-btn:hover {
+            background: #f8fafc;
+            border-color: #3b82f6;
+            color: #3b82f6;
+            transform: translateY(-1px);
+        }
+
+    .mermaid-control-btn:active {
+        transform: scale(0.95);
+    }
+
+    @media (max-width: 1024px) {
+        .mermaid-control-btn:not(.reset-zoom) {
+            display: none;
+        }
+        .mermaid-controls {
+            top: auto;
+            bottom: 15px;
+            right: 15px;
+        }
+    }
+</style>
+  <base target="_blank">
+</head>
+
+  <body class="font-inter text-slate-800">
+    <!-- Fixed Table of Contents -->
+    <nav class="toc-fixed" id="toc">
+      <div class="mb-6">
+        <h3 class="font-tiempos text-lg font-bold text-slate-900 mb-4">Contenidos</h3>
+      </div>
+
+      <div class="space-y-2">
+        <a href="#introduction" class="toc-link block px-3 py-2 text-sm rounded-md">Introducción</a>
+        <a href="#architecture" class="toc-link block px-3 py-2 text-sm rounded-md">Arquitectura del Sistema</a>
+        <a href="#memory-layers" class="toc-link block px-3 py-2 text-sm rounded-md">Tres Capas de Memoria</a>
+        <a href="#language-models" class="toc-link block px-3 py-2 text-sm rounded-md">Modelos de Lenguaje</a>
+        <a href="#infrastructure" class="toc-link block px-3 py-2 text-sm rounded-md">Infraestructura</a>
+        <a href="#agents" class="toc-link block px-3 py-2 text-sm rounded-md">Agentes Especializados</a>
+        <a href="#connectors" class="toc-link block px-3 py-2 text-sm rounded-md">Sistemas de Conexión</a>
+        <a href="#implementation" class="toc-link block px-3 py-2 text-sm rounded-md">Guía de Implementación</a>
+        <a href="#optimization" class="toc-link block px-3 py-2 text-sm rounded-md">Optimización y Costos</a>
+      </div>
+
+      <div class="mt-8 pt-6 border-t border-slate-200">
+        <p class="text-xs text-slate-500">
+          <i class="fas fa-clock mr-1"></i>
+          Tiempo de lectura estimado: 25 minutos
+        </p>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Mobile TOC Toggle -->
+      <button class="lg:hidden fixed top-4 left-4 z-50 bg-white p-2 rounded-lg shadow-lg border" onclick="toggleTOC()">
+        <i class="fas fa-bars"></i>
+      </button>
+
+      <!-- Hero Section -->
+      <section class="relative min-h-screen flex items-center">
+        <div class="hero-gradient absolute inset-0"></div>
+        <img src="https://kimi-web-img.moonshot.cn/img/media.licdn.com/5cd00fbdf2a88d65cb782da8f48e0681a0506bd3" alt="Arquitectura de red neuronal con nodos interconectados" class="absolute inset-0 w-full h-full object-cover opacity-30" size="wallpaper" aspect="wide" query="neural network architecture" referrerpolicy="no-referrer" data-modified="1" data-score="0.00"/>
+
+        <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="bento-grid">
+            <!-- Main Title Block -->
+            <div class="bento-item relative overflow-hidden">
+              <div class="relative z-10">
+                <h1 class="font-tiempos text-4xl md:text-5xl lg:text-6xl font-bold text-slate-900 mb-6 leading-tight">
+                  <span class="italic text-blue-600">Arquitectura</span>
+                  <br/>
+                  Jarvis
+                </h1>
+                <p class="text-lg md:text-xl text-slate-600 mb-8 leading-relaxed">
+                  Guía completa para construir un asistente personal inteligente con memoria persistente en tres capas, agentes especializados e integración con modelos de lenguaje económicos.
+                </p>
+                <div class="flex items-center space-x-4">
+                  <span class="px-4 py-2 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                    <i class="fas fa-brain mr-2"></i>IA Agentica
+                  </span>
+                  <span class="px-4 py-2 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                    <i class="fas fa-memory mr-2"></i>Memoria Persistente
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Key Metrics Grid -->
+            <div class="space-y-4">
+              <div class="data-card">
+                <h3 class="font-bold text-slate-900 mb-2">Rendimiento Memgraph</h3>
+                <div class="performance-bar">
+                  <div class="performance-fill" style="width: 92%"></div>
+                </div>
+                <p class="text-sm text-slate-600">10x más rápido que Neo4j en escrituras</p>
+              </div>
+
+              <div class="data-card">
+                <h3 class="font-bold text-slate-900 mb-2">Precisión BGE-m3</h3>
+                <div class="performance-bar">
+                  <div class="performance-fill" style="width: 88%"></div>
+                </div>
+                <p class="text-sm text-slate-600">38.7 nDCG@10 en MS MARCO</p>
+              </div>
+
+              <div class="data-card">
+                <h3 class="font-bold text-slate-900 mb-2">Reducción de Costos</h3>
+                <div class="performance-bar">
+                  <div class="performance-fill" style="width: 75%"></div>
+                </div>
+                <p class="text-sm text-slate-600">Hasta 1/20 del costo con MiniMax</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Introduction Section -->
+      <section id="introduction" class="py-16 bg-white">
+        <div class="max-w-6xl mx-auto px-8">
+          <div class="mb-12">
+            <h2 class="font-tiempos text-4xl font-bold text-slate-900 mb-6">Fundamentos y Visión General</h2>
+            <div class="w-20 h-1 bg-blue-600 mb-8"></div>
+          </div>
+
+          <div class="prose prose-lg max-w-none">
+            <p class="text-xl text-slate-700 leading-relaxed mb-8">
+              La construcción de un asistente personal tipo Jarvis representa el pináculo de la ingeniería de sistemas de IA agentica. Esta guía presenta una arquitectura completa que sintetiza las mejores prácticas de plataformas como <strong>TrustGraph.ai</strong> y <strong>Graphiti</strong>, implementando un sistema de memoria persistente en tres capas que transforma agentes simples en sistemas contextualmente conscientes.
+            </p>
+
+            <blockquote class="border-l-4 border-blue-600 pl-6 py-4 bg-blue-50 rounded-r-lg my-8">
+              <p class="text-lg italic text-slate-700 mb-2">
+                &#34;La memoria no es solo un almacén de información, sino el fundamento del razonamiento contextual y la personalización profunda.&#34;
+              </p>
+              <footer class="text-sm text-slate-600">— Principio de Arquitectura Jarvis</footer>
+            </blockquote>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 my-12">
+              <div class="data-card text-center">
+                <i class="fas fa-layer-group text-3xl text-blue-600 mb-4"></i>
+                <h3 class="font-bold text-slate-900 mb-2">Tres Capas de Memoria</h3>
+                <p class="text-sm text-slate-600">Memgraph para grafos, Qdrant para embeddings, Redis para caché de baja latencia</p>
+              </div>
+
+              <div class="data-card text-center">
+                <i class="fas fa-users text-3xl text-green-600 mb-4"></i>
+                <h3 class="font-bold text-slate-900 mb-2">Tres Agentes Especializados</h3>
+                <p class="text-sm text-slate-600">Bibliotecario, Investigador y Organizador Nocturno con roles diferenciados</p>
+              </div>
+
+              <div class="data-card text-center">
+                <i class="fas fa-dollar-sign text-3xl text-orange-600 mb-4"></i>
+                <h3 class="font-bold text-slate-900 mb-2">Modelos Económicos</h3>
+                <p class="text-sm text-slate-600">Kimi K2.5, MiniMax 2.5 y GLM-5 para optimización de costos</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="section-divider"></div>
+
+      <!-- Architecture Section -->
+      <section id="architecture" class="py-16 bg-slate-50">
+        <div class="max-w-6xl mx-auto px-8">
+          <div class="mb-12">
+            <h2 class="font-tiempos text-4xl font-bold text-slate-900 mb-6">Arquitectura del Sistema</h2>
+            <p class="text-xl text-slate-600">Diseño basado en eventos y microservicios para máxima escalabilidad</p>
+          </div>
+
+          <!-- System Architecture Diagram -->
+          <div class="mb-12">
+            <div class="bg-white rounded-xl p-8 border border-slate-200 shadow-lg">
+              <h3 class="font-bold text-slate-900 mb-6 text-center">Arquitectura de Referencia</h3>
+              <div class="mermaid-container">
+                <div class="mermaid-controls">
+                  <button class="mermaid-control-btn zoom-in" title="放大">
+                    <i class="fas fa-search-plus"></i>
+                  </button>
+                  <button class="mermaid-control-btn zoom-out" title="缩小">
+                    <i class="fas fa-search-minus"></i>
+                  </button>
+                  <button class="mermaid-control-btn reset-zoom" title="重置">
+                    <i class="fas fa-expand-arrows-alt"></i>
+                  </button>
+                  <button class="mermaid-control-btn fullscreen" title="全屏查看">
+                    <i class="fas fa-expand"></i>
+                  </button>
+                </div>
+                <div class="mermaid">
+                  graph TB
+                  A[&#34;Usuario&#34;] --&gt; B[&#34;Connectors CLI/LangGraph/n8n&#34;]
+                  B --&gt; C[&#34;Event Bus Redis/Pulsar&#34;]
+                  C --&gt; D[&#34;Bibliotecario&#34;]
+                  C --&gt; E[&#34;Investigador&#34;]
+                  C --&gt; F[&#34;Organizador Nocturno&#34;]
+
+                  D --&gt; G[&#34;Memgraph&#34;]
+                  E --&gt; G
+                  F --&gt; G
+
+                  D --&gt; H[&#34;Qdrant&#34;]
+                  E --&gt; H
+                  F --&gt; H
+
+                  D --&gt; I[&#34;Redis Cache&#34;]
+                  E --&gt; I
+                  F --&gt; I
+
+                  J[&#34;Kimi K2.5&#34;] --&gt; D
+                  K[&#34;MiniMax 2.5&#34;] --&gt; E
+                  L[&#34;GLM-5&#34;] --&gt; F
+
+                  M[&#34;Embeddings BGE-m3&#34;] --&gt; H
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div class="space-y-6">
+              <div class="data-card">
+                <h3 class="font-bold text-slate-900 mb-4">
+                  <i class="fas fa-brain text-blue-600 mr-2"></i>
+                  Patrón ReAct Mejorado
+                </h3>
+                <p class="text-slate-700 mb-4">
+                  Implementación del patrón <strong>ReAct (Reasoning + Acting)</strong> con metacognición persistente. Cada paso de razonamiento genera embeddings que se almacenan en Qdrant para aprendizaje continuo.
+                </p>
+                <ul class="text-sm text-slate-600 space-y-2">
+                  <li><strong>Pensamientos:</strong> Descomposición de tareas complejas</li>
+                  <li><strong>Acciones:</strong> Uso de herramientas especializadas</li>
+                  <li><strong>Observaciones:</strong> Evaluación y aprendizaje</li>
+                </ul>
+              </div>
+
+              <div class="data-card">
+                <h3 class="font-bold text-slate-900 mb-4">
+                  <i class="fas fa-stream text-green-600 mr-2"></i>
+                  Arquitectura Event-Driven
+                </h3>
+                <p class="text-slate-700 mb-4">
+                  Sistema de mensajería asíncrona basado en <strong>Redis Streams</strong> y <strong>Apache Pulsar</strong> que garantiza coherencia eventual sin bloqueo operativo.
+                </p>
+                <div class="bg-slate-50 p-3 rounded-lg">
+                  <code class="text-xs text-slate-600">
+                                    DocumentIngested → EntityExtracted → EmbeddingGenerated → QueryExecuted → MemoryConsolidated
+                                </code>
+                </div>
+              </div>
+            </div>
+
+            <div class="space-y-6">
+              <div class="data-card">
+                <h3 class="font-bold text-slate-900 mb-4">
+                  <i class="fas fa-database text-purple-600 mr-2"></i>
+                  Inspiración TrustGraph.ai
+                </h3>
+                <p class="text-slate-700 mb-4">
+                  <a href="https://github.com/trustgraph-ai/.github" class="citation" target="_blank">TrustGraph.ai</a> representa un &#34;sistema operativo de contexto para IA&#34; con arquitectura de microservicios y <strong>Context Cores</strong> para bases de conocimiento aisladas y versionables.
+                </p>
+                <div class="text-sm text-slate-600">
+                  <strong>Licencia:</strong> Apache 2.0
+                  <br/>
+                  <strong>Proveedores:</strong> 12+ sin vendor lock-in
+                </div>
+              </div>
+
+              <div class="data-card">
+                <h3 class="font-bold text-slate-900 mb-4">
+                  <i class="fas fa-project-diagram text-orange-600 mr-2"></i>
+                  Superioridad de Graphiti
+                </h3>
+                <p class="text-slate-700 mb-4">
+                  <a href="https://www.marktechpost.com/2025/11/10/comparing-memory-systems-for-llm-agents-vector-graph-and-event-logs/" class="citation" target="_blank">Graphiti</a> demuestra <strong>94.8% de precisión</strong> versus 93.4% de MemGPT, con <strong>90% menor latencia</strong> en razonamiento temporal complejo.
+                </p>
+                <div class="text-sm text-slate-600">
+                  <strong>Enfoque:</strong> Grafos de conocimiento temporales
+                  <br/>
+                  <strong>Ventaja:</strong> Comprende cuándo la información era válida
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Memory Layers Section -->
+      <section id="memory-layers" class="py-16 bg-white">
+        <div class="max-w-6xl mx-auto px-8">
+          <div class="mb-12">
+            <h2 class="font-tiempos text-4xl font-bold text-slate-900 mb-6">Tres Capas de Memoria Especializadas</h2>
+            <p class="text-xl text-slate-600">Optimización por patrones de acceso y requisitos de rendimiento</p>
+          </div>
+
+          <!-- Memory Layer Architecture -->
+          <div class="mb-12">
+            <div class="bg-slate-50 rounded-xl p-8 border border-slate-200">
+              <h3 class="font-bold text-slate-900 mb-6 text-center">Arquitectura de Memoria en Tres Capas</h3>
+              <div class="mermaid-container">
+                <div class="mermaid-controls">
+                  <button class="mermaid-control-btn zoom-in" title="放大">
+                    <i class="fas fa-search-plus"></i>
+                  </button>
+                  <button class="mermaid-control-btn zoom-out" title="缩小">
+                    <i class="fas fa-search-minus"></i>
+                  </button>
+                  <button class="mermaid-control-btn reset-zoom" title="重置">
+                    <i class="fas fa-expand-arrows-alt"></i>
+                  </button>
+                  <button class="mermaid-control-btn fullscreen" title="全屏查看">
+                    <i class="fas fa-expand"></i>
+                  </button>
+                </div>
+                <div class="mermaid">
+                  graph TB
+                  subgraph &#34;Capa 1: Referencia&#34;
+                  A[&#34;Memgraph&#34;]
+                  A1[&#34;Grafo de Conocimiento&#34;]
+                  A2[&#34;Entidades y Relaciones&#34;]
+                  A3[&#34;Propiedades Temporales&#34;]
+                  end
+
+                  subgraph &#34;Capa 2: Semántica&#34;
+                  B[&#34;Qdrant&#34;]
+                  B1[&#34;Embeddings Vectoriales&#34;]
+                  B2[&#34;Búsqueda ANN&#34;]
+                  B3[&#34;Filtrado Híbrido&#34;]
+                  end
+
+                  subgraph &#34;Capa 3: Baja Latencia&#34;
+                  C[&#34;Redis&#34;]
+                  C1[&#34;Caché Frecuente&#34;]
+                  C2[&#34;Estado de Sesión&#34;]
+                  C3[&#34;Buffer de Eventos&#34;]
+                  end
+
+                  A -.-&gt; B
+                  B -.-&gt; C
+                  C -.-&gt; A
+
+                  D[&#34;Bibliotecario&#34;] --&gt; A
+                  D --&gt; B
+                  E[&#34;Investigador&#34;] --&gt; B
+                  E --&gt; C
+                  F[&#34;Organizador&#34;] --&gt; A
+                  F --&gt; B
+                  F --&gt; C
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-12">
+            <!-- Memgraph Layer -->
+            <div class="data-card">
+              <div class="flex items-center mb-6">
+                <i class="fas fa-project-diagram text-3xl text-blue-600 mr-4"></i>
+                <div>
+                  <h3 class="font-tiempos text-2xl font-bold text-slate-900">Capa de Referencia: Memgraph</h3>
+                  <p class="text-slate-600">Grafo de conocimiento estructurado con propiedades temporales</p>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div>
+                  <p class="text-slate-700 mb-4">
+                    <strong>Memgraph</strong> funciona como la capa fundamental, almacenando el grafo de conocimiento que preserva causalidad y contexto explícito mediante nodos tipados y aristas con propiedades temporales.
+                    <a href="https://memgraph.com/blog/memgraph-or-neo4j-analyzing-write-speed-performance" class="citation" target="_blank">Ventajas de rendimiento clave</a>:
+                  </p>
+
+                  <div class="bg-blue-50 p-4 rounded-lg mb-4">
+                    <h4 class="font-bold text-blue-900 mb-2">Ventajas de Rendimiento</h4>
+                    <ul class="text-sm text-blue-800 space-y-1">
+                      <li>✓ 100K nodos en ~400ms (vs 3.8s Neo4j)</li>
+                      <li>✓ 120x superior en throughput concurrente</li>
+                      <li>✓ Latencia P99 &lt; 1 segundo para consultas complejas</li>
+                      <li>✓ Vector search integrado nativo</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 class="font-bold text-slate-900 mb-3">Tipos de Entidades Principales</h4>
+                  <div class="grid grid-cols-2 gap-2 text-sm">
+                    <div class="bg-slate-100 p-2 rounded">Person</div>
+                    <div class="bg-slate-100 p-2 rounded">Topic</div>
+                    <div class="bg-slate-100 p-2 rounded">Event</div>
+                    <div class="bg-slate-100 p-2 rounded">Document</div>
+                    <div class="bg-slate-100 p-2 rounded">Skill</div>
+                    <div class="bg-slate-100 p-2 rounded">Goal</div>
+                    <div class="bg-slate-100 p-2 rounded">Preference</div>
+                    <div class="bg-slate-100 p-2 rounded">Commitment</div>
+                  </div>
+
+                  <h4 class="font-bold text-slate-900 mb-3 mt-4">Relaciones Semánticas</h4>
+                  <div class="text-xs text-slate-600 space-y-1">
+                    <div>WORKS_ON, DEPENDS_ON, PRECEDED_BY</div>
+                    <div>ENABLES, CONTRADICTS, MENTIONED_IN</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Qdrant Layer -->
+            <div class="data-card">
+              <div class="flex items-center mb-6">
+                <i class="fas fa-search text-3xl text-green-600 mr-4"></i>
+                <div>
+                  <h3 class="font-tiempos text-2xl font-bold text-slate-900">Capa de Embeddings: Qdrant</h3>
+                  <p class="text-slate-600">Búsqueda semántica de alta performance con filtrado avanzado</p>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div>
+                  <h4 class="font-bold text-slate-900 mb-3">Colecciones Principales</h4>
+                  <div class="space-y-2 text-sm">
+                    <div class="bg-green-50 p-3 rounded">
+                      <strong>document_chunks</strong>
+                      <br/>
+                      <span class="text-green-700">Persistente, 1024D, int8</span>
+                    </div>
+                    <div class="bg-yellow-50 p-3 rounded">
+                      <strong>conversation_turns</strong>
+                      <br/>
+                      <span class="text-yellow-700">TTL 90 días, 1024D</span>
+                    </div>
+                    <div class="bg-purple-50 p-3 rounded">
+                      <strong>query_cache</strong>
+                      <br/>
+                      <span class="text-purple-700">TTL 7 días, binary</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 class="font-bold text-slate-900 mb-3">Configuración Optimizada</h4>
+                  <div class="bg-slate-50 p-4 rounded-lg text-sm space-y-2">
+                    <div><strong>m:</strong> 16 conexiones por nodo</div>
+                    <div><strong>ef_construct:</strong> 100</div>
+                    <div><strong>Quantización:</strong> int8 (75% reducción memoria)</div>
+                    <div><strong>Degradación:</strong> &lt; 2% recall@10</div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 class="font-bold text-slate-900 mb-3">Ventajas Clave</h4>
+                    <ul class="text-sm text-slate-700 space-y-2">
+                      <li>✓ Búsqueda ANN con HNSW</li>
+                      <li>✓ Filtrado por metadatos pesados</li>
+                      <li>✓ <a href="https://skywork.ai/skypage/en/unlocking-ai-memory-qdrant-knowledge-graph/1977918366783819776" class="citation" target="_blank">Integración con LangGraph</a>
+                      </li>
+                      <li>✓ Sincronización bidireccional con Memgraph</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Redis Layer -->
+              <div class="data-card">
+                <div class="flex items-center mb-6">
+                  <i class="fas fa-memory text-3xl text-red-600 mr-4"></i>
+                  <div>
+                    <h3 class="font-tiempos text-2xl font-bold text-slate-900">Capa de Recuperación Rápida: Redis</h3>
+                    <p class="text-slate-600">Ultra-baja latencia para acceso frecuente y estado de sesión</p>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  <div>
+                    <h4 class="font-bold text-slate-900 mb-3">Tipos de Memoria Implementados</h4>
+                    <div class="space-y-3">
+                      <div class="bg-red-50 p-3 rounded">
+                        <strong class="text-red-900">Episódica</strong>
+                        <br/>
+                        <span class="text-red-700 text-sm">Streams con timestamps para eventos</span>
+                      </div>
+                      <div class="bg-orange-50 p-3 rounded">
+                        <strong class="text-orange-900">Procedural</strong>
+                        <br/>
+                        <span class="text-orange-700 text-sm">Hashes para habilidades aprendidas</span>
+                      </div>
+                      <div class="bg-blue-50 p-3 rounded">
+                        <strong class="text-blue-900">Semántica</strong>
+                        <br/>
+                        <span class="text-blue-700 text-sm">JSON con RedisJSON para hechos</span>
+                      </div>
+                      <div class="bg-purple-50 p-3 rounded">
+                        <strong class="text-purple-900">Trabajo</strong>
+                        <br/>
+                        <span class="text-purple-700 text-sm">Listas para contexto conversacional</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 class="font-bold text-slate-900 mb-3">Estrategias de TTL y Evicción</h4>
+                    <div class="bg-slate-50 p-4 rounded-lg mb-4">
+                      <div class="text-sm space-y-2">
+                        <div><strong>Sesión activa:</strong> 5 minutos (renovable)</div>
+                        <div><strong>Caché consultas:</strong> 1 hora</div>
+                        <div><strong>Perfiles frecuentes:</strong> 24 horas</div>
+                        <div><strong>Metadatos sistema:</strong> Persistente</div>
+                      </div>
+                    </div>
+
+                    <p class="text-sm text-slate-700">
+                      <a href="https://redis.io/blog/build-smarter-ai-agents-manage-short-term-and-long-term-memory-with-redis/" class="citation" target="_blank">Redis Vector Sets</a> en Redis 8+ habilita búsqueda vectorial nativa sin servicios adicionales.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+      </section>
+
+      <!-- Language Models Section -->
+      <section id="language-models" class="py-16 bg-slate-50">
+        <div class="max-w-6xl mx-auto px-8">
+          <div class="mb-12">
+            <h2 class="font-tiempos text-4xl font-bold text-slate-900 mb-6">Modelos de Lenguaje Económicos</h2>
+            <p class="text-xl text-slate-600">Optimización de costos sin comprometer el rendimiento</p>
+          </div>
+
+          <!-- Model Comparison -->
+          <div class="mb-12">
+            <div class="bg-white rounded-xl p-8 border border-slate-200">
+              <h3 class="font-bold text-slate-900 mb-6 text-center">Comparación de Modelos Económicos</h3>
+              <div class="mermaid-container">
+                <div class="mermaid-controls">
+                  <button class="mermaid-control-btn zoom-in" title="放大">
+                    <i class="fas fa-search-plus"></i>
+                  </button>
+                  <button class="mermaid-control-btn zoom-out" title="缩小">
+                    <i class="fas fa-search-minus"></i>
+                  </button>
+                  <button class="mermaid-control-btn reset-zoom" title="重置">
+                    <i class="fas fa-expand-arrows-alt"></i>
+                  </button>
+                  <button class="mermaid-control-btn fullscreen" title="全屏查看">
+                    <i class="fas fa-expand"></i>
+                  </button>
+                </div>
+                <div class="mermaid">
+                  graph LR
+                  subgraph &#34;Modelos Premium&#34;
+                  A[&#34;Kimi K2.5
+                  <br/>1T MoE, 32B activos&#34;]
+                  B[&#34;GLM-5
+                  <br/>77.8% SWE-Bench&#34;]
+                  end
+
+                  subgraph &#34;Modelos Económicos&#34;
+                  C[&#34;MiniMax 2.5
+                  <br/>$0.30/hora, 100TPS&#34;]
+                  end
+
+                  subgraph &#34;Agentes Jarvis&#34;
+                  D[&#34;Bibliotecario&#34;]
+                  E[&#34;Investigador&#34;]
+                  F[&#34;Organizador&#34;]
+                  end
+
+                  A --&gt; E
+                  B --&gt; D
+                  C --&gt; F
+
+                  subgraph &#34;Embeddings&#34;
+                  G[&#34;BGE-m3
+                  <br/>1024D, multilingüe&#34;]
+                  H[&#34;Qwen3-0.6B
+                  <br/>768D, edge friendly&#34;]
+                  end
+
+                  G --&gt; D
+                  H --&gt; F
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Kimi K2.5 -->
+            <div class="data-card">
+              <div class="flex items-center mb-4">
+                <img src="https://kimi-web-img.moonshot.cn/img/hdrobots.com/f5a8511f0514d524918479ab92ccf1d8492f482a.webp" alt="Logo of Kimi AI" class="w-12 h-12 rounded-lg mr-3" size="small" aspect="square" query="Kimi AI logo" referrerpolicy="no-referrer" data-modified="1" data-score="0.00"/>
+                <div>
+                  <h3 class="font-bold text-slate-900">Kimi K2.5</h3>
+                  <p class="text-sm text-slate-600">Agent Swarm &amp; Contexto Extendido</p>
+                </div>
+              </div>
+
+              <div class="space-y-3 text-sm">
+                <div class="bg-blue-50 p-3 rounded">
+                  <strong>Arquitectura:</strong> 1T MoE, 32B activos/token
+                  <br/>
+                  <strong>MLA:</strong> Reducción memoria caché 90%
+                </div>
+
+                <div class="bg-green-50 p-3 rounded">
+                  <strong>Agent Swarm:</strong> Hasta 100 sub-agentes
+                  <br/>
+                  <strong>PARL:</strong> 4.5x reducción tiempo
+                </div>
+
+                <div class="bg-purple-50 p-3 rounded">
+                  <strong>Contexto:</strong> 256K-2M tokens
+                  <br/>
+                  <strong>Cuantización:</strong> INT4 (75% reducción)
+                </div>
+              </div>
+
+              <div class="mt-4 p-3 bg-slate-50 rounded">
+                <p class="text-xs text-slate-600">
+                  <strong>API:</strong>
+                  <a href="https://zhuanlan.zhihu.com/p/2001794790262583338" class="citation" target="_blank">NVIDIA Build</a>
+                  o
+                  <a href="https://platform.moonshot.cn/docs/guide/kimi-k2-5-quickstart" class="citation" target="_blank">API oficial</a>
+                </p>
+              </div>
+            </div>
+
+            <!-- MiniMax 2.5 -->
+            <div class="data-card">
+              <div class="flex items-center mb-4">
+                <div class="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center mr-3">
+                  <i class="fas fa-dollar-sign text-white text-xl"></i>
+                </div>
+                <div>
+                  <h3 class="font-bold text-slate-900">MiniMax 2.5</h3>
+                  <p class="text-sm text-slate-600">Costo-Efectividad Extrema</p>
+                </div>
+              </div>
+
+              <div class="bg-green-50 p-4 rounded-lg mb-4">
+                <h4 class="font-bold text-green-900 mb-2">Ventajas Económicas</h4>
+                <ul class="text-sm text-green-800 space-y-1">
+                  <li>✓ $0.30/hora (1/10-1/20 costo alternativas)</li>
+                  <li>✓ 100 TPS (2x modelos mainstream)</li>
+                  <li>✓ Forge + CISPO para RL a escala</li>
+                  <li>✓ Process Reward para monitoreo</li>
+                </ul>
+              </div>
+
+              <div class="bg-orange-50 p-3 rounded">
+                <strong class="text-orange-900">RISE Evaluation:</strong>
+                <br/>
+                <span class="text-orange-700 text-sm">Exploración profunda en páginas web profesionales</span>
+              </div>
+
+              <div class="mt-4 text-xs text-slate-600">
+                <strong>Código invitación:</strong> AJ3Q73TC para beneficios adicionales
+              </div>
+            </div>
+
+            <!-- GLM-5 -->
+            <div class="data-card">
+              <div class="flex items-center mb-4">
+                <img src="https://kimi-web-img.moonshot.cn/img/artificialanalysis.ai/c2a3e13292f79c5c65dbe772a916dd39275f40f2.jpg" alt="GLM-5 AI model logo" class="w-12 h-12 rounded-lg mr-3" size="small" aspect="square" query="GLM-5 AI model logo" referrerpolicy="no-referrer" data-modified="1" data-score="0.00"/>
+                <div>
+                  <h3 class="font-bold text-slate-900">GLM-5</h3>
+                  <p class="text-sm text-slate-600">Razonamiento Lógico y Código</p>
+                </div>
+              </div>
+
+              <div class="space-y-3 text-sm">
+                <div class="bg-blue-50 p-3 rounded">
+                  <strong>Benchmarks:</strong> 77.8% SWE-Bench Verified
+                  <br/>
+                  <span class="text-blue-700">Comparable con Claude Opus 4.5/4.6 (80.9%)</span>
+                </div>
+
+                <div class="bg-green-50 p-3 rounded">
+                  <strong>Arquitectura MTP:</strong> Multi-Token Prediction
+                  <br/>
+                  <span class="text-green-700">Decodificación especulativa 2x</span>
+                </div>
+
+                <div class="bg-purple-50 p-3 rounded">
+                  <strong>Tool Calling:</strong> 76.8% BFCL multi-turn
+                  <br/>
+                  <span class="text-purple-700">Supera a Claude Opus 4.5/4.6 (68.0%)</span>
+                </div>
+              </div>
+
+              <div class="mt-4 p-3 bg-slate-50 rounded">
+                <p class="text-xs text-slate-600">
+                  <strong>Despliegue local:</strong>
+                  <a href="https://unsloth.ai/docs/models/glm-5" class="citation" target="_blank">Unsloth con cuantización UD-IQ2_XXS</a>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Embeddings Strategy -->
+          <div class="mt-12">
+            <h3 class="font-tiempos text-2xl font-bold text-slate-900 mb-6">Estrategia de Embeddings en Cascada</h3>
+
+            <div class="data-card">
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                  <thead class="bg-slate-50">
+                    <tr>
+                      <th class="text-left p-3 font-bold">Modelo</th>
+                      <th class="text-left p-3 font-bold">Dimensiones</th>
+                      <th class="text-left p-3 font-bold">Calidad MS MARCO</th>
+                      <th class="text-left p-3 font-bold">Costo</th>
+                      <th class="text-left p-3 font-bold">Uso Recomendado</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-200">
+                    <tr class="bg-blue-50 font-medium">
+                      <td class="p-3">BGE-m3</td>
+                      <td class="p-3">1024</td>
+                      <td class="p-3">38.7 (nDCG@10)</td>
+                      <td class="p-3">0.9x</td>
+                      <td class="p-3">Uso general recomendado</td>
+                    </tr>
+                    <tr>
+                      <td class="p-3">BGE-large-en-v1.5</td>
+                      <td class="p-3">1024</td>
+                      <td class="p-3">41.2</td>
+                      <td class="p-3">1.0x</td>
+                      <td class="p-3">Colecciones críticas, inglés</td>
+                    </tr>
+                    <tr>
+                      <td class="p-3">BGE-small-en-v1.5</td>
+                      <td class="p-3">384</td>
+                      <td class="p-3">36.5</td>
+                      <td class="p-3">0.3x</td>
+                      <td class="p-3">Caché rápida, re-ranking</td>
+                    </tr>
+                    <tr class="bg-green-50 font-medium">
+                      <td class="p-3">Qwen3-0.6B</td>
+                      <td class="p-3">768</td>
+                      <td class="p-3">35.2</td>
+                      <td class="p-3">0.15x</td>
+                      <td class="p-3">Edge, privacidad prioritaria</td>
+                    </tr>
+                    <tr>
+                      <td class="p-3">GTE-large</td>
+                      <td class="p-3">1024</td>
+                      <td class="p-3">40.1</td>
+                      <td class="p-3">0.8x</td>
+                      <td class="p-3">Alternativa a BGE</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="mt-6 p-4 bg-yellow-50 rounded-lg">
+                <p class="text-sm text-yellow-800">
+                  <strong>Recomendación oficial:</strong>
+                  <a href="https://opc.csdn.net/69845f9c7bbde9200b9842ca.html" class="citation" target="_blank">BGE-m3 es el embedding recomendado por Moonshot AI</a> para escenarios con Kimi K2.5, con normalización crítica para similitud coseno.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Infrastructure Section -->
+      <section id="infrastructure" class="py-16 bg-white">
+        <div class="max-w-6xl mx-auto px-8">
+          <div class="mb-12">
+            <h2 class="font-tiempos text-4xl font-bold text-slate-900 mb-6">Configuración e Infraestructura</h2>
+            <p class="text-xl text-slate-600">Guía paso a paso para despliegue local y en producción</p>
+          </div>
+
+          <!-- Infrastructure Comparison -->
+          <div class="mb-12">
+            <div class="bg-slate-50 rounded-xl p-8 border border-slate-200">
+              <h3 class="font-bold text-slate-900 mb-6 text-center">Opciones de Despliegue</h3>
+              <div class="mermaid-container">
+                <div class="mermaid-controls">
+                  <button class="mermaid-control-btn zoom-in" title="放大">
+                    <i class="fas fa-search-plus"></i>
+                  </button>
+                  <button class="mermaid-control-btn zoom-out" title="缩小">
+                    <i class="fas fa-search-minus"></i>
+                  </button>
+                  <button class="mermaid-control-btn reset-zoom" title="重置">
+                    <i class="fas fa-expand-arrows-alt"></i>
+                  </button>
+                  <button class="mermaid-control-btn fullscreen" title="全屏查看">
+                    <i class="fas fa-expand"></i>
+                  </button>
+                </div>
+                <div class="mermaid">
+                  graph LR
+                  subgraph &#34;Opciones de Infraestructura&#34;
+                  A[&#34;100% Local&#34;]
+                  B[&#34;Cloud Híbrido
+                  <br/>Recomendado&#34;]
+                  C[&#34;100% Cloud
+                  <br/>Serverless&#34;]
+                  end
+
+                  subgraph &#34;Componentes Locales&#34;
+                  A1[&#34;Memgraph
+                  <br/>Redis&#34;]
+                  A2[&#34;Embeddings Locales&#34;]
+                  end
+
+                  subgraph &#34;Componentes Cloud&#34;
+                  B1[&#34;Qdrant Cloud&#34;]
+                  B2[&#34;APIs LLM&#34;]
+                  end
+
+                  subgraph &#34;Servicios Gestionados&#34;
+                  C1[&#34;Qdrant Serverless&#34;]
+                  C2[&#34;Redis Cloud&#34;]
+                  C3[&#34;Upstash&#34;]
+                  end
+
+                  A --&gt; A1
+                  A --&gt; A2
+                  B --&gt; A1
+                  B --&gt; B1
+                  B --&gt; B2
+                  C --&gt; C1
+                  C --&gt; C2
+                  C --&gt; C3
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+            <!-- Local Setup -->
+            <div class="data-card">
+              <h3 class="font-bold text-slate-900 mb-4">
+                <i class="fas fa-server text-blue-600 mr-2"></i>
+                Configuración Local con Docker
+              </h3>
+
+              <div class="bg-slate-900 text-green-400 p-4 rounded-lg text-sm mb-4 overflow-x-auto">
+                <pre><code># Docker Compose para desarrollo
+version: &#39;3.8&#39;
+
+services:
+  memgraph:
+    image: memgraph/memgraph-platform:latest
+    ports: [&#34;7687:7687&#34;, &#34;3000:3000&#34;]
+    environment:
+      - MEMGRAPH=--memory-limit=4GB --schema-info-enabled=true
+    volumes: [memgraph_data:/var/lib/memgraph]
+
+  qdrant:
+    image: qdrant/qdrant:v1.16.0
+    ports: [&#34;6333:6333&#34;, &#34;6334:6334&#34;]
+    volumes: [qdrant_storage:/qdrant/storage]
+
+  redis:
+    image: redis:7-alpine
+    ports: [&#34;6379:6379&#34;]
+    command: redis-server /usr/local/etc/redis/redis.conf
+    volumes: [./redis.conf:/usr/local/etc/redis/redis.conf:ro]</code></pre>
+              </div>
+
+              <p class="text-sm text-slate-600 mb-4">
+                <strong>Comandos esenciales:</strong>
+              </p>
+              <div class="bg-slate-100 p-3 rounded text-xs">
+                <code>
+                                # Iniciar servicios<br/>
+                                docker-compose up -d<br/><br/>
+                                # Ver logs<br/>
+                                docker-compose logs -f<br/><br/>
+                                # Healthchecks<br/>
+                                docker-compose ps
+                            </code>
+              </div>
+            </div>
+
+            <!-- Production Setup -->
+            <div class="data-card">
+              <h3 class="font-bold text-slate-900 mb-4">
+                <i class="fas fa-cloud text-green-600 mr-2"></i>
+                Configuración Híbrida Recomendada
+              </h3>
+
+              <div class="space-y-4">
+                <div class="bg-blue-50 p-4 rounded">
+                  <h4 class="font-bold text-blue-900 mb-2">Local/Self-Hosted</h4>
+                  <ul class="text-sm text-blue-800 space-y-1">
+                    <li>✓ Memgraph (datos sensibles)</li>
+                    <li>✓ Redis (sesiones, caché)</li>
+                    <li>✓ Embeddings locales (Qwen3-0.6B)</li>
+                  </ul>
+                </div>
+
+                <div class="bg-green-50 p-4 rounded">
+                  <h4 class="font-bold text-green-900 mb-2">Cloud Services</h4>
+                  <ul class="text-sm text-green-800 space-y-1">
+                    <li>✓ Qdrant Cloud (escalabilidad)</li>
+                    <li>✓ APIs de LLM (flexibilidad)</li>
+                    <li>✓ Burst a cloud para picos de carga</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="mt-4 p-3 bg-slate-50 rounded">
+                <p class="text-xs text-slate-600">
+                  <strong>Costo estimado:</strong> $500-2000/mes para uso intensivo
+                  <br/>
+                  <strong>Latencia:</strong> 100-300ms típica
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Environment Variables -->
+          <div class="data-card mb-8">
+            <h3 class="font-bold text-slate-900 mb-4">
+              <i class="fas fa-key text-purple-600 mr-2"></i>
+              Variables de Entorno y Gestión de Secretos
+            </h3>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div>
+                <h4 class="font-bold text-slate-900 mb-3">API Keys Requeridas</h4>
+                <div class="bg-slate-900 text-green-400 p-4 rounded-lg text-sm overflow-x-auto">
+                  <pre><code># Moonshot AI (Kimi K2.5)
+KIMI_API_KEY=sk-...
+KIMI_BASE_URL=https://api.moonshot.cn/v1
+
+# MiniMax
+MINIMAX_API_KEY=...
+MINIMAX_BASE_URL=https://api.minimaxi.com/v1
+
+# GLM-5
+GLM_API_KEY=...
+GLM_BASE_URL=https://open.bigmodel.cn/api/paas/v4
+
+# Embeddings
+EMBEDDING_PROVIDER=local
+LOCAL_EMBEDDING_MODEL=BAAI/bge-m3</code></pre>
+                </div>
+              </div>
+
+              <div>
+                <h4 class="font-bold text-slate-900 mb-3">Configuración Pydantic</h4>
+                <div class="bg-slate-100 p-4 rounded-lg text-sm">
+                  <pre><code># config/settings.py
+from pydantic_settings import BaseSettings
+
+class Settings(BaseSettings):
+    MEMGRAPH_URI: str = &#34;bolt://localhost:7687&#34;
+    QDRANT_HOST: str = &#34;localhost&#34;
+    REDIS_URL: str = &#34;redis://localhost:6379/0&#34;
+    
+    KIMI_API_KEY: str = &#34;&#34;
+    MINIMAX_API_KEY: str = &#34;&#34;
+    GLM_API_KEY: str = &#34;&#34;
+    
+    BIBLIOTECARIO_MODEL: str = &#34;glm-5&#34;
+    INVESTIGADOR_MODEL: str = &#34;kimi-k2.5&#34;
+    ORGANIZADOR_MODEL: str = &#34;minimax-2.5&#34;</code></pre>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Project Structure -->
+          <div class="data-card">
+            <h3 class="font-bold text-slate-900 mb-4">
+              <i class="fas fa-folder-tree text-orange-600 mr-2"></i>
+              Estructura del Proyecto Completa
+            </h3>
+
+            <div class="bg-slate-900 text-green-400 p-4 rounded-lg text-sm overflow-x-auto">
+              <pre><code>jarvis-assistant/
+├── agents/
+│   ├── base.py              # Clase base ReActAgent
+│   ├── librarian/           # Bibliotecario: ingesta y organización
+│   │   ├── extractor.py     # NER y relaciones
+│   │   ├── pipeline.py      # Pipeline de procesamiento
+│   │   └── indexer.py       # Inserción en Memgraph/Qdrant
+│   ├── researcher/          # Investigador: recuperación
+│   │   ├── decomposer.py    # Descomposición de consultas
+│   │   ├── hybrid_search.py # Búsqueda híbrida
+│   │   └── aggregator.py    # Agregación de resultados
+│   └── night_organizer/     # Organizador Nocturno: mantenimiento
+│       ├── deduplicator.py  # Deduplicación de entidades
+│       ├── reindexer.py     # Reindexación de embeddings
+│       └── compressor.py    # Compresión de grafo
+├── memory/                  # Capas de memoria
+│   ├── memgraph_client.py   # Cliente y modelos de grafo
+│   ├── qdrant_client.py     # Cliente vectorial
+│   ├── redis_client.py      # Cliente de caché
+│   └── three_layer_store.py # Fachada unificada
+├── connectors/
+│   ├── cli/                 # Línea de comandos
+│   │   ├── main.py          # Punto de entrada Typer
+│   │   └── commands/
+│   ├── mcp/                 # Model Context Protocol
+│   │   ├── server.py        # Servidor FastMCP
+│   │   └── tools.py         # Herramientas expuestas
+│   └── langgraph/           # Integración LangGraph
+│       ├── state.py         # Definición de estados
+│       └── nodes.py         # Nodos de decisión/acción
+├── models/                  # Configuración de LLMs
+│   ├── kimi_client.py
+│   ├── minimax_client.py
+│   └── glm_client.py
+├── api/                     # API REST/FastAPI
+└── docker-compose.yml</code></pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Agents Section -->
+      <section id="agents" class="py-16 bg-slate-50">
+        <div class="max-w-6xl mx-auto px-8">
+          <div class="mb-12">
+            <h2 class="font-tiempos text-4xl font-bold text-slate-900 mb-6">Agentes Especializados</h2>
+            <p class="text-xl text-slate-600">División de responsabilidades para máxima eficiencia operativa</p>
+          </div>
+
+          <!-- Agent Architecture -->
+          <div class="mb-12">
+            <div class="bg-white rounded-xl p-8 border border-slate-200">
+              <h3 class="font-bold text-slate-900 mb-6 text-center">Flujo de Trabajo Multi-Agente</h3>
+              <div class="mermaid-container">
+                <div class="mermaid-controls">
+                  <button class="mermaid-control-btn zoom-in" title="放大">
+                    <i class="fas fa-search-plus"></i>
+                  </button>
+                  <button class="mermaid-control-btn zoom-out" title="缩小">
+                    <i class="fas fa-search-minus"></i>
+                  </button>
+                  <button class="mermaid-control-btn reset-zoom" title="重置">
+                    <i class="fas fa-expand-arrows-alt"></i>
+                  </button>
+                  <button class="mermaid-control-btn fullscreen" title="全屏查看">
+                    <i class="fas fa-expand"></i>
+                  </button>
+                </div>
+                <div class="mermaid">
+                  graph TB
+                  A[&#34;Documento de Entrada&#34;] --&gt; B[&#34;Bibliotecario&#34;]
+                  B --&gt; C[&#34;Extracción NER/Relaciones&#34;]
+                  C --&gt; D[&#34;Inserción Memgraph&#34;]
+                  D --&gt; E[&#34;Generación Embeddings&#34;]
+                  E --&gt; F[&#34;Almacenamiento Qdrant&#34;]
+
+                  G[&#34;Consulta Usuario&#34;] --&gt; H[&#34;Investigador&#34;]
+                  H --&gt; I[&#34;Descomposición de Consulta&#34;]
+                  I --&gt; J[&#34;Búsqueda Híbrida&#34;]
+                  J --&gt; K[&#34;Agregación Resultados&#34;]
+                  K --&gt; L[&#34;Respuesta Contextual&#34;]
+
+                  M[&#34;Trigger Nocturno&#34;] --&gt; N[&#34;Organizador&#34;]
+                  N --&gt; O[&#34;Deduplicación Entidades&#34;]
+                  O --&gt; P[&#34;Reindexación Embeddings&#34;]
+                  P --&gt; Q[&#34;Compresión Grafo&#34;]
+                  Q --&gt; R[&#34;Mantenimiento Redis&#34;]
+
+                  B -.-&gt; H
+                  H -.-&gt; N
+                  N -.-&gt; B
+
+                  subgraph &#34;Memoria Persistente&#34;
+                  S[&#34;Memgraph&#34;]
+                  T[&#34;Qdrant&#34;]
+                  U[&#34;Redis&#34;]
+                  end
+
+                  D --&gt; S
+                  F --&gt; T
+                  R --&gt; U
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Librarian Agent -->
+          <div class="data-card mb-8">
+            <div class="flex items-center mb-6">
+              <i class="fas fa-book text-3xl text-blue-600 mr-4"></i>
+              <div>
+                <h3 class="font-tiempos text-2xl font-bold text-slate-900">El Bibliotecario (Agente de Ingesta)</h3>
+                <p class="text-slate-600">Procesamiento y organización de información entrante</p>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div>
+                <h4 class="font-bold text-slate-900 mb-3">Pipeline de Extracción</h4>
+                <div class="space-y-3">
+                  <div class="bg-blue-50 p-3 rounded-lg">
+                    <strong class="text-blue-900">1. NER Rápido (spaCy)</strong>
+                    <br/>
+                    <span class="text-blue-700 text-sm">~5ms, gratuito, entidades comunes</span>
+                  </div>
+                  <div class="bg-green-50 p-3 rounded-lg">
+                    <strong class="text-green-900">2. NER Zero-shot (GLiNER2)</strong>
+                    <br/>
+                    <span class="text-green-700 text-sm">~50ms, gratuito, dominio específico</span>
+                  </div>
+                  <div class="bg-purple-50 p-3 rounded-lg">
+                    <strong class="text-purple-900">3. Fallback LLM (GLM-5)</strong>
+                    <br/>
+                    <span class="text-purple-700 text-sm">~500ms, $0.001-0.01, casos complejos</span>
+                  </div>
+                </div>
+
+                <h4 class="font-bold text-slate-900 mb-3 mt-6">Tipos de Documentos Soportados</h4>
+                <div class="grid grid-cols-2 gap-2 text-sm">
+                  <div class="bg-slate-100 p-2 rounded">Texto/Markdown</div>
+                  <div class="bg-slate-100 p-2 rounded">PDF</div>
+                  <div class="bg-slate-100 p-2 rounded">Web/HTML</div>
+                  <div class="bg-slate-100 p-2 rounded">Audio</div>
+                  <div class="bg-slate-100 p-2 rounded">Imágenes</div>
+                  <div class="bg-slate-100 p-2 rounded">Video</div>
+                </div>
+              </div>
+
+              <div>
+                <h4 class="font-bold text-slate-900 mb-3">Inserción en Memgraph</h4>
+                <div class="bg-slate-900 text-green-400 p-4 rounded-lg text-xs overflow-x-auto">
+                  <pre><code># Cypher parametrizado para seguridad y rendimiento
+MERGE (e:Entity {id: $id})
+SET e.name = $name,
+    e.type = $type,
+    e.first_seen = coalesce(e.first_seen, $timestamp),
+    e.last_seen = $timestamp,
+    e.source_docs = coalesce(e.source_docs, []) + $doc_id,
+    e.confidence = $confidence
+
+# Relaciones con intervalos de validez
+MATCH (a:Entity {id: $source}), (b:Entity {id: $target})
+MERGE (a)-[r:RELATES {type: $rel_type}]-&gt;(b)
+SET r.since = date($start_date),
+    r.until = date($end_date),
+    r.confidence = $confidence</code></pre>
+                </div>
+
+                <h4 class="font-bold text-slate-900 mb-3 mt-6">Generación de Embeddings</h4>
+                <div class="bg-slate-100 p-4 rounded-lg">
+                  <p class="text-sm text-slate-700 mb-2">
+                    <strong>Batching optimizado:</strong> 32 documentos por batch
+                    <br/>
+                    <strong>Normalización:</strong> Crítica para similitud coseno
+                    <br/>
+                    <strong>Puente explícito:</strong> memgraph_entity_ids en payload
+                  </p>
+                  <div class="text-xs text-slate-600">
+                    <code>encode_kwargs={&#34;normalize_embeddings&#34;: True}</code>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Researcher Agent -->
+          <div class="data-card mb-8">
+            <div class="flex items-center mb-6">
+              <i class="fas fa-search text-3xl text-green-600 mr-4"></i>
+              <div>
+                <h3 class="font-tiempos text-2xl font-bold text-slate-900">El Investigador (Agente de Recuperación)</h3>
+                <p class="text-slate-600">Recuperación inteligente y agregación de conocimiento</p>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div>
+                <h4 class="font-bold text-slate-900 mb-3">Estrategias de Descomposición</h4>
+                <div class="space-y-3">
+                  <div class="bg-green-50 p-3 rounded-lg">
+                    <strong class="text-green-900">Consulta Simple</strong>
+                    <br/>
+                    <span class="text-green-700 text-sm">Búsqueda vectorial directa</span>
+                    <br/>
+                    <code class="text-xs text-green-600">&#34;¿Qué es Jarvis?&#34;</code>
+                  </div>
+                  <div class="bg-yellow-50 p-3 rounded-lg">
+                    <strong class="text-yellow-900">Consulta Moderada</strong>
+                    <br/>
+                    <span class="text-yellow-700 text-sm">Búsqueda híbrida con filtros</span>
+                    <br/>
+                    <code class="text-xs text-yellow-600">&#34;Documentos 2024 ML&#34;</code>
+                  </div>
+                  <div class="bg-red-50 p-3 rounded-lg">
+                    <strong class="text-red-900">Consulta Compleja</strong>
+                    <br/>
+                    <span class="text-red-700 text-sm">Descomposición en subtareas</span>
+                    <br/>
+                    <code class="text-xs text-red-600">&#34;Análisis competitivo...&#34;</code>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h4 class="font-bold text-slate-900 mb-3">Búsqueda Híbrida</h4>
+                <div class="bg-slate-100 p-4 rounded-lg mb-4">
+                  <p class="text-sm text-slate-700 mb-2">
+                    <strong>Proceso de dos fases:</strong>
+                  </p>
+                  <ol class="text-xs text-slate-600 space-y-1">
+                    <li>1. Búsqueda vectorial inicial en Qdrant</li>
+                    <li>2. Enriquecimiento con contexto relacional de Memgraph</li>
+                    <li>3. Re-ranking basado en relevancia contextual</li>
+                  </ol>
+                </div>
+
+                <h4 class="font-bold text-slate-900 mb-3">Agregación de Resultados</h4>
+                <div class="bg-blue-50 p-4 rounded-lg">
+                  <p class="text-sm text-blue-800 mb-2">
+                    <strong>Métodos de agregación:</strong>
+                  </p>
+                  <ul class="text-xs text-blue-700 space-y-1">
+                    <li>• Reciprocal Rank Fusion (RRF)</li>
+                    <li>• Weighted voting basado en confianza</li>
+                    <li>• Consolidación de entidades duplicadas</li>
+                    <li>• Generación de resúmenes ejecutivos</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Night Organizer Agent -->
+          <div class="data-card">
+            <div class="flex items-center mb-6">
+              <i class="fas fa-moon text-3xl text-purple-600 mr-4"></i>
+              <div>
+                <h3 class="font-tiempos text-2xl font-bold text-slate-900">El Organizador Nocturno (Mantenimiento)</h3>
+                <p class="text-slate-600">Optimización y consolidación de memoria durante períodos de baja actividad</p>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div>
+                <h4 class="font-bold text-slate-900 mb-3">Tareas Programadas</h4>
+                <div class="space-y-2">
+                  <div class="bg-purple-50 p-3 rounded">
+                    <strong class="text-purple-900">Deduplicación</strong>
+                    <br/>
+                    <span class="text-purple-700 text-sm">Fusión de entidades similares</span>
+                  </div>
+                  <div class="bg-blue-50 p-3 rounded">
+                    <strong class="text-blue-900">Reindexación</strong>
+                    <br/>
+                    <span class="text-blue-700 text-sm">Actualización de embeddings</span>
+                  </div>
+                  <div class="bg-green-50 p-3 rounded">
+                    <strong class="text-green-900">Compresión</strong>
+                    <br/>
+                    <span class="text-green-700 text-sm">Reducción de grafo</span>
+                  </div>
+                  <div class="bg-orange-50 p-3 rounded">
+                    <strong class="text-orange-900">Limpieza</strong>
+                    <br/>
+                    <span class="text-orange-700 text-sm">Eliminación datos obsoletos</span>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h4 class="font-bold text-slate-900 mb-3">Optimización de Costos</h4>
+                <div class="bg-slate-50 p-4 rounded-lg mb-4">
+                  <p class="text-sm text-slate-700 mb-2">
+                    <strong>MiniMax 2.5 es ideal para:</strong>
+                  </p>
+                  <ul class="text-xs text-slate-600 space-y-1">
+                    <li>• Tareas de mantenimiento prolongadas</li>
+                    <li>• Procesamiento batch de documentos</li>
+                    <li>• Optimización de consultas complejas</li>
+                    <li>• Análisis de patrones de uso</li>
+                  </ul>
+                </div>
+
+                <div class="bg-green-50 p-3 rounded">
+                  <p class="text-sm text-green-800">
+                    <strong>Ahorro:</strong> ~$0.30/hora vs $6-12/hora con modelos premium
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <h4 class="font-bold text-slate-900 mb-3">Programación Inteligente</h4>
+                <div class="bg-slate-100 p-4 rounded-lg">
+                  <p class="text-sm text-slate-700 mb-2">
+                    <strong>Criterios de activación:</strong>
+                  </p>
+                  <ul class="text-xs text-slate-600 space-y-1">
+                    <li>• Baja actividad del sistema (&gt;2h inactividad)</li>
+                    <li>• Umbral de fragmentación alcanzado</li>
+                    <li>• Cambios significativos en datos</li>
+                    <li>• Programación cron configurable</li>
+                  </ul>
+                </div>
+
+                <div class="mt-4 p-3 bg-blue-50 rounded">
+                  <p class="text-xs text-blue-800">
+                    <strong>Monitoreo:</strong> Métricas detalladas de optimización
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Connectors Section -->
+      <section id="connectors" class="py-16 bg-white">
+        <div class="max-w-6xl mx-auto px-8">
+          <div class="mb-12">
+            <h2 class="font-tiempos text-4xl font-bold text-slate-900 mb-6">Sistemas de Conexión</h2>
+            <p class="text-xl text-slate-600">Interfaces para interacción humana y automatización</p>
+          </div>
+
+          <!-- Connector Architecture -->
+          <div class="mb-12">
+            <div class="bg-slate-50 rounded-xl p-8 border border-slate-200">
+              <h3 class="font-bold text-slate-900 mb-6 text-center">Arquitectura de Conexión</h3>
+              <div class="mermaid-container">
+                <div class="mermaid-controls">
+                  <button class="mermaid-control-btn zoom-in" title="放大">
+                    <i class="fas fa-search-plus"></i>
+                  </button>
+                  <button class="mermaid-control-btn zoom-out" title="缩小">
+                    <i class="fas fa-search-minus"></i>
+                  </button>
+                  <button class="mermaid-control-btn reset-zoom" title="重置">
+                    <i class="fas fa-expand-arrows-alt"></i>
+                  </button>
+                  <button class="mermaid-control-btn fullscreen" title="全屏查看">
+                    <i class="fas fa-expand"></i>
+                  </button>
+                </div>
+                <div class="mermaid">
+                  graph TB
+                  A[&#34;Usuario&#34;] --&gt; B[&#34;Interfaces de Conexión&#34;]
+                  B --&gt; C[&#34;CLI&#34;]
+                  B --&gt; D[&#34;MCP Server&#34;]
+                  B --&gt; E[&#34;LangGraph&#34;]
+                  B --&gt; F[&#34;n8n&#34;]
+                  B --&gt; G[&#34;API REST&#34;]
+
+                  C --&gt; H[&#34;Comandos Skill&#34;]
+                  C --&gt; I[&#34;Consulta Interactiva&#34;]
+                  C --&gt; J[&#34;Mantenimiento&#34;]
+
+                  D --&gt; K[&#34;Claude Desktop&#34;]
+                  D --&gt; L[&#34;VS Code&#34;]
+                  D --&gt; M[&#34;Otras IDEs&#34;]
+
+                  E --&gt; N[&#34;Orquestación Compleja&#34;]
+                  F --&gt; O[&#34;Automatización No-Code&#34;]
+
+                  G --&gt; P[&#34;Integraciones Webhook&#34;]
+
+                  H --&gt; Q[&#34;Agentes Jarvis&#34;]
+                  I --&gt; Q
+                  J --&gt; Q
+                  K --&gt; Q
+                  L --&gt; Q
+                  M --&gt; Q
+                  N --&gt; Q
+                  O --&gt; Q
+                  P --&gt; Q
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- CLI Interface -->
+            <div class="data-card">
+              <h3 class="font-bold text-slate-900 mb-4">
+                <i class="fas fa-terminal text-blue-600 mr-2"></i>
+                Interfaz de Línea de Comandos (CLI)
+              </h3>
+
+              <div class="bg-slate-900 text-green-400 p-4 rounded-lg text-sm mb-4 overflow-x-auto">
+                <pre><code># Crear nueva habilidad
+jarvis skill create &#34;web_scraper&#34; \
+  --description &#34;Extrae contenido de sitios web&#34; \
+  --framework langgraph
+
+# Probar habilidad
+jarvis skill test web_scraper \
+  --input &#34;https://ejemplo.com&#34; \
+  --verbose
+
+# Desplegar habilidad
+jarvis skill deploy web_scraper \
+  --environment production \
+  --version 1.0.0
+
+# Consulta interactiva
+jarvis query &#34;Análisis de competidores 2024&#34; \
+  --depth comprehensive \
+  --format markdown
+
+# Mantenimiento manual
+jarvis maintain --full-optimization \
+  --schedule &#34;0 2 * * *&#34;</code></pre>
+              </div>
+
+              <h4 class="font-bold text-slate-900 mb-3">Estructura de Comandos</h4>
+              <div class="space-y-2 text-sm">
+                <div class="bg-blue-50 p-2 rounded">
+                  <strong>skill</strong> → create, test, deploy, list
+                </div>
+                <div class="bg-green-50 p-2 rounded">
+                  <strong>query</strong> → Consultas interactivas con opciones
+                </div>
+                <div class="bg-purple-50 p-2 rounded">
+                  <strong>maintain</strong> → Tareas de mantenimiento programado
+                </div>
+                <div class="bg-orange-50 p-2 rounded">
+                  <strong>status</strong> → Estado del sistema y métricas
+                </div>
+              </div>
+            </div>
+
+            <!-- MCP Server -->
+            <div class="data-card">
+              <h3 class="font-bold text-slate-900 mb-4">
+                <i class="fas fa-plug text-green-600 mr-2"></i>
+                Model Context Protocol (MCP) Server
+              </h3>
+
+              <div class="bg-green-50 p-4 rounded-lg mb-4">
+                <h4 class="font-bold text-green-900 mb-2">Herramientas Exponibles</h4>
+                <ul class="text-sm text-green-800 space-y-2">
+                  <li><strong>search_knowledge:</strong> Búsqueda híbrida en grafo y embeddings</li>
+                  <li><strong>extract_entities:</strong> NER y extracción de relaciones</li>
+                  <li><strong>create_skill:</strong> Generación y despliegue de habilidades</li>
+                  <li><strong>maintain_memory:</strong> Optimización y consolidación</li>
+                </ul>
+              </div>
+
+              <div class="bg-slate-900 text-green-400 p-4 rounded-lg text-sm mb-4 overflow-x-auto">
+                <pre><code># Configuración Claude Desktop
+{
+  &#34;mcpServers&#34;: {
+    &#34;jarvis&#34;: {
+      &#34;command&#34;: &#34;python&#34;,
+      &#34;args&#34;: [
+        &#34;-m&#34;, &#34;jarvis.mcp.server&#34;,
+        &#34;--transport&#34;, &#34;stdio&#34;
+      ],
+      &#34;env&#34;: {
+        &#34;MEMGRAPH_URI&#34;: &#34;bolt://localhost:7687&#34;
+      }
+    }
+  }
+}</code></pre>
+              </div>
+
+              <h4 class="font-bold text-slate-900 mb-3">Integraciones Soportadas</h4>
+              <div class="grid grid-cols-2 gap-2 text-sm">
+                <div class="bg-blue-100 p-2 rounded">Claude Desktop</div>
+                <div class="bg-green-100 p-2 rounded">VS Code</div>
+                <div class="bg-purple-100 p-2 rounded">Cursor</div>
+                <div class="bg-orange-100 p-2 rounded">Zed</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- LangGraph Integration -->
+          <div class="data-card mt-8">
+            <h3 class="font-bold text-slate-900 mb-4">
+              <i class="fas fa-project-diagram text-purple-600 mr-2"></i>
+              Integración con LangGraph y n8n
+            </h3>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div>
+                <h4 class="font-bold text-slate-900 mb-3">LangGraph State Machine</h4>
+                <div class="bg-slate-900 text-green-400 p-4 rounded-lg text-sm mb-4 overflow-x-auto">
+                  <pre><code># Definición de estado
+class AgentState(TypedDict):
+    query: str
+    context: dict
+    intermediate_steps: List[dict]
+    final_answer: str
+    confidence: float
+
+# Nodos de decisión
+def route_query(state: AgentState):
+    complexity = analyze_complexity(state[&#34;query&#34;])
+    if complexity &gt; 0.8:
+        return &#34;decompose_query&#34;
+    return &#34;direct_search&#34;
+
+# Flujo completo
+workflow = StateGraph(AgentState)
+workflow.add_node(&#34;route_query&#34;, route_query)
+workflow.add_node(&#34;decompose_query&#34;, decompose_query)
+workflow.add_node(&#34;direct_search&#34;, direct_search)
+workflow.add_node(&#34;hybrid_search&#34;, hybrid_search)
+workflow.add_node(&#34;aggregate_results&#34;, aggregate_results)</code></pre>
+                </div>
+
+                <h4 class="font-bold text-slate-900 mb-3">Ventajas de LangGraph</h4>
+                <ul class="text-sm text-slate-700 space-y-1">
+                  <li>• Orquestación de múltiples agentes</li>
+                  <li>• Estado persistente entre pasos</li>
+                  <li>• Transiciones condicionales</li>
+                  <li>• Monitoreo y depuración integrados</li>
+                </ul>
+              </div>
+
+              <div>
+                <h4 class="font-bold text-slate-900 mb-3">Integración n8n</h4>
+                <div class="bg-slate-100 p-4 rounded-lg mb-4">
+                  <p class="text-sm text-slate-700 mb-2">
+                    <strong>Nodos personalizados:</strong>
+                  </p>
+                  <ul class="text-xs text-slate-600 space-y-1">
+                    <li>• Jarvis Search Node</li>
+                    <li>• Entity Extraction Node</li>
+                    <li>• Skill Deployment Node</li>
+                    <li>• Memory Maintenance Node</li>
+                  </ul>
+                </div>
+
+                <h4 class="font-bold text-slate-900 mb-3">Casos de Uso Automatizados</h4>
+                <div class="space-y-2">
+                  <div class="bg-blue-50 p-3 rounded">
+                    <strong class="text-blue-900">Monitoreo Competitivo</strong>
+                    <br/>
+                    <span class="text-blue-700 text-sm">Scrapeo + análisis + alertas</span>
+                  </div>
+                  <div class="bg-green-50 p-3 rounded">
+                    <strong class="text-green-900">Procesamiento Documentos</strong>
+                    <br/>
+                    <span class="text-green-700 text-sm">Ingesta + clasificación + indexación</span>
+                  </div>
+                  <div class="bg-purple-50 p-3 rounded">
+                    <strong class="text-purple-900">Actualización Knowledge Base</strong>
+                    <br/>
+                    <span class="text-purple-700 text-sm">Sincronización + validación</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Implementation Guide -->
+      <section id="implementation" class="py-16 bg-slate-50">
+        <div class="max-w-6xl mx-auto px-8">
+          <div class="mb-12">
+            <h2 class="font-tiempos text-4xl font-bold text-slate-900 mb-6">Guía de Implementación Paso a Paso</h2>
+            <p class="text-xl text-slate-600">Desde la configuración inicial hasta la producción</p>
+          </div>
+
+          <!-- Implementation Timeline -->
+          <div class="mb-12">
+            <div class="bg-white rounded-xl p-8 border border-slate-200">
+              <h3 class="font-bold text-slate-900 mb-6 text-center">Cronograma de Implementación Recomendado</h3>
+              <div class="mermaid-container">
+                <div class="mermaid-controls">
+                  <button class="mermaid-control-btn zoom-in" title="放大">
+                    <i class="fas fa-search-plus"></i>
+                  </button>
+                  <button class="mermaid-control-btn zoom-out" title="缩小">
+                    <i class="fas fa-search-minus"></i>
+                  </button>
+                  <button class="mermaid-control-btn reset-zoom" title="重置">
+                    <i class="fas fa-expand-arrows-alt"></i>
+                  </button>
+                  <button class="mermaid-control-btn fullscreen" title="全屏查看">
+                    <i class="fas fa-expand"></i>
+                  </button>
+                </div>
+                <div class="mermaid">
+                  gantt
+                  title &#34;Implementación Jarvis - 4 Semanas&#34;
+
+                  section &#34;Semana 1: Infraestructura&#34;
+                  &#34;Configurar Docker&#34; :a1, 2024-01-01, 1d
+                  &#34;Instalar Memgraph&#34; :a2, after a1, 1d
+                  &#34;Configurar Qdrant&#34; :a3, after a2, 1d
+                  &#34;Setup Redis&#34; :a4, after a3, 1d
+
+                  section &#34;Semana 2: Modelos&#34;
+                  &#34;Registrar APIs&#34; :b1, 2024-01-08, 1d
+                  &#34;Probar Kimi K2.5&#34; :b2, after b1, 1d
+                  &#34;Configurar GLM-5&#34; :b3, after b2, 1d
+                  &#34;Setup Embeddings&#34; :b4, after b3, 1d
+
+                  section &#34;Semana 3: Agentes&#34;
+                  &#34;Implementar Bibliotecario&#34; :c1, 2024-01-15, 2d
+                  &#34;Desarrollar Investigador&#34; :c2, after c1, 2d
+                  &#34;Crear Organizador&#34; :c3, after c2, 1d
+
+                  section &#34;Semana 4: Conexión&#34;
+                  &#34;CLI Básica&#34; :d1, 2024-01-22, 1d
+                  &#34;MCP Server&#34; :d2, after d1, 2d
+                  &#34;Integración LangGraph&#34; :d3, after d2, 1d
+                  &#34;Pruebas y Optimización&#34; :d4, after d3, 2d
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Phase 1: Infrastructure -->
+          <div class="data-card mb-8">
+            <h3 class="font-bold text-slate-900 mb-4">
+              <i class="fas fa-server text-blue-600 mr-2"></i>
+              Fase 1: Configuración de Infraestructura (Día 1-5)
+            </h3>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div>
+                <h4 class="font-bold text-slate-900 mb-3">Paso 1: Docker y Dependencias</h4>
+                <div class="bg-slate-900 text-green-400 p-4 rounded-lg text-sm mb-4 overflow-x-auto">
+                  <pre><code># Instalar Docker y Docker Compose
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker $USER
+
+# Instalar Poetry para gestión de dependencias
+curl -sSL https://install.python-poetry.org | python3 -
+
+# Clonar repositorio
+git clone https://github.com/tu-usuario/jarvis-assistant.git
+cd jarvis-assistant
+
+# Instalar dependencias
+poetry install --with dev</code></pre>
+                </div>
+
+                <h4 class="font-bold text-slate-900 mb-3">Paso 2: Configurar Memgraph</h4>
+                <div class="bg-slate-900 text-green-400 p-4 rounded-lg text-sm overflow-x-auto">
+                  <pre><code># Iniciar Memgraph
+docker run -d \
+  -p 7687:7687 \
+  -p 3000:3000 \
+  -v memgraph_data:/var/lib/memgraph \
+  -e MEMGRAPH=&#34;--bolt-server-name-for-init=Neo4j/ --memory-limit=4GB&#34; \
+  memgraph/memgraph-platform:latest
+
+# Verificar conexión
+docker exec -it memgraph mgconsole
+&gt; RETURN 1;</code></pre>
+                </div>
+              </div>
+
+              <div>
+                <h4 class="font-bold text-slate-900 mb-3">Paso 3: Configurar Qdrant</h4>
+                <div class="bg-slate-900 text-green-400 p-4 rounded-lg text-sm mb-4 overflow-x-auto">
+                  <pre><code># Iniciar Qdrant
+docker run -d \
+  -p 6333:6333 \
+  -p 6334:6334 \
+  -v qdrant_storage:/qdrant/storage \
+  qdrant/qdrant:v1.16.0
+
+# Crear colección optimizada
+python -c &#34;
+from qdrant_client import QdrantClient
+client = QdrantClient(&#39;localhost&#39;, port=6333)
+client.create_collection(
+    collection_name=&#39;jarvis_memory&#39;,
+    vectors_config={&#39;size&#39;: 1024, &#39;distance&#39;: &#39;Cosine&#39;},
+    quantization_config={&#39;scalar&#39;: {&#39;type&#39;: &#39;int8&#39;}}
+)
+&#34;</code></pre>
+                </div>
+
+                <h4 class="font-bold text-slate-900 mb-3">Paso 4: Configurar Redis</h4>
+                <div class="bg-slate-900 text-green-400 p-4 rounded-lg text-sm overflow-x-auto">
+                  <pre><code># Crear redis.conf
+cat &gt; redis.conf &lt;<eof maxmemory="" 2gb="" maxmemory-policy="" allkeys-lru="" appendonly="" yes="" appendfsync="" everysec="" save="" ""="" save="" 3600="" 1="" eof="" #="" iniciar="" redis="" docker="" run="" -d="" \="" -p="" 6379:6379="" \="" -v="" $(pwd)="" redis.conf:="" usr="" local="" etc="" redis="" redis.conf:ro="" \="" -v="" redis_data:="" data="" \="" redis:7-alpine="" redis-server="" usr="" local="" etc="" redis="" redis.conf<="" code=""></eof></code></pre><code>
+                </code></div><code>
+              </code></div><code>
+            </code></div><code>
+          </code></div><code>
+
+          <!-- Phase 2: Models -->
+          <div class="data-card mb-8">
+            <h3 class="font-bold text-slate-900 mb-4">
+              <i class="fas fa-brain text-green-600 mr-2"></i>
+              Fase 2: Configuración de Modelos (Día 6-10)
+            </h3>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div>
+                <h4 class="font-bold text-slate-900 mb-3">Paso 1: Registrar en Plataformas</h4>
+                <div class="space-y-3">
+                  <div class="bg-blue-50 p-3 rounded">
+                    <strong class="text-blue-900">Moonshot AI (Kimi K2.5)</strong>
+                    <br/>
+                    <span class="text-blue-700 text-sm">
+                      <a href="https://build.nvidia.com/explore/discover" class="citation" target="_blank">NVIDIA Build</a> o
+                      <a href="https://platform.moonshot.cn/docs/guide/kimi-k2-5-quickstart" class="citation" target="_blank">API oficial</a>
+                    </span>
+                  </div>
+                  <div class="bg-green-50 p-3 rounded">
+                    <strong class="text-green-900">MiniMax</strong>
+                    <br/>
+                    <span class="text-green-700 text-sm">Código invitación: AJ3Q73TC</span>
+                  </div>
+                  <div class="bg-purple-50 p-3 rounded">
+                    <strong class="text-purple-900">GLM-5</strong>
+                    <br/>
+                    <span class="text-purple-700 text-sm">
+                      <a href="https://unsloth.ai/docs/models/glm-5" class="citation" target="_blank">Despliegue local con Unsloth</a>
+                    </span>
+                  </div>
+                </div>
+
+                <h4 class="font-bold text-slate-900 mb-3 mt-4">Paso 2: Probar Conexiones</h4>
+                <div class="bg-slate-900 text-green-400 p-4 rounded-lg text-sm overflow-x-auto">
+                  <pre><code># Test Kimi K2.5
+python -c &#34;
+from openai import OpenAI
+client = OpenAI(
+    api_key=&#39;sk-...&#39;,
+    base_url=&#39;https://api.moonshot.cn/v1&#39;
+)
+response = client.chat.completions.create(
+    model=&#39;moonshotai/kimi-k2.5&#39;,
+    messages=[{&#39;role&#39;: &#39;user&#39;, &#39;content&#39;: &#39;Hola&#39;}]
+)
+print(response.choices[0].message.content)
+&#34;</code></pre>
+                </div>
+              </div>
+
+              <div>
+                <h4 class="font-bold text-slate-900 mb-3">Paso 3: Configurar Embeddings</h4>
+                <div class="bg-slate-900 text-green-400 p-4 rounded-lg text-sm mb-4 overflow-x-auto">
+                  <pre><code># Instalar modelo local
+pip install sentence-transformers
+
+# Descargar BGE-m3
+python -c &#34;
+from sentence_transformers import SentenceTransformer
+model = SentenceTransformer(&#39;BAAI/bge-m3&#39;)
+print(f&#39;Modelo descargado: {model.get_sentence_embedding_dimension()}D&#39;)
+&#34;</code></pre>
+                </div>
+
+                <h4 class="font-bold text-slate-900 mb-3">Paso 4: Validar Pipeline Completo</h4>
+                <div class="bg-slate-100 p-4 rounded-lg">
+                  <p class="text-sm text-slate-700 mb-2">
+                    <strong>Prueba end-to-end:</strong>
+                  </p>
+                  <div class="text-xs text-slate-600 space-y-1">
+                    <div>1. Embedding de texto de prueba</div>
+                    <div>2. Inserción en Qdrant</div>
+                    <div>3. Búsqueda de similitud</div>
+                    <div>4. Validación de resultados</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Phase 3: Agents -->
+          <div class="data-card mb-8">
+            <h3 class="font-bold text-slate-900 mb-4">
+              <i class="fas fa-users text-purple-600 mr-2"></i>
+              Fase 3: Implementación de Agentes (Día 11-20)
+            </h3>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div>
+                <h4 class="font-bold text-slate-900 mb-3">Bibliotecario</h4>
+                <div class="bg-blue-50 p-4 rounded-lg mb-4">
+                  <p class="text-sm text-blue-800 mb-2">
+                    <strong>Funciones clave:</strong>
+                  </p>
+                  <ul class="text-xs text-blue-700 space-y-1">
+                    <li>• Extracción NER con spaCy + GLiNER2</li>
+                    <li>• Inserción en Memgraph con Cypher</li>
+                    <li>• Generación embeddings con BGE-m3</li>
+                    <li>• Indexación en Qdrant con metadatos</li>
+                  </ul>
+                </div>
+
+                <div class="bg-slate-900 text-green-400 p-3 rounded-lg text-xs overflow-x-auto">
+                  <pre><code># Test Bibliotecario
+python -m agents.librarian.test \
+  --document &#34;prueba.txt&#34; \
+  --verbose</code></pre>
+                </div>
+              </div>
+
+              <div>
+                <h4 class="font-bold text-slate-900 mb-3">Investigador</h4>
+                <div class="bg-green-50 p-4 rounded-lg mb-4">
+                  <p class="text-sm text-green-800 mb-2">
+                    <strong>Funciones clave:</strong>
+                  </p>
+                  <ul class="text-xs text-green-700 space-y-1">
+                    <li>• Descomposición de consultas complejas</li>
+                    <li>• Búsqueda híbrida (vectorial + grafo)</li>
+                    <li>• Agregación de resultados con RRF</li>
+                    <li>• Generación de respuestas contextualizadas</li>
+                  </ul>
+                </div>
+
+                <div class="bg-slate-900 text-green-400 p-3 rounded-lg text-xs overflow-x-auto">
+                  <pre><code># Test Investigador
+python -m agents.researcher.test \
+  --query &#34;Análisis tendencias ML 2024&#34; \
+  --depth comprehensive</code></pre>
+                </div>
+              </div>
+
+              <div>
+                <h4 class="font-bold text-slate-900 mb-3">Organizador Nocturno</h4>
+                <div class="bg-purple-50 p-4 rounded-lg mb-4">
+                  <p class="text-sm text-purple-800 mb-2">
+                    <strong>Funciones clave:</strong>
+                  </p>
+                  <ul class="text-xs text-purple-700 space-y-1">
+                    <li>• Deduplicación de entidades similares</li>
+                    <li>• Reindexación periódica de embeddings</li>
+                    <li>• Compresión y optimización de grafo</li>
+                    <li>• Limpieza de datos obsoletos</li>
+                  </ul>
+                </div>
+
+                <div class="bg-slate-900 text-green-400 p-3 rounded-lg text-xs overflow-x-auto">
+                  <pre><code># Test Organizador
+python -m agents.night_organizer.test \
+  --full-optimization \
+  --dry-run</code></pre>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Phase 4: Connectors -->
+          <div class="data-card">
+            <h3 class="font-bold text-slate-900 mb-4">
+              <i class="fas fa-plug text-orange-600 mr-2"></i>
+              Fase 4: Sistemas de Conexión (Día 21-25)
+            </h3>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div>
+                <h4 class="font-bold text-slate-900 mb-3">CLI y MCP Server</h4>
+                <div class="bg-slate-900 text-green-400 p-4 rounded-lg text-sm mb-4 overflow-x-auto">
+                  <pre><code># Instalar CLI globalmente
+poetry build
+pip install dist/jarvis_assistant-0.1.0-py3-none-any.whl
+
+# Configurar MCP en Claude Desktop
+mkdir -p ~/.claude-desktop
+cat &gt; ~/.claude-desktop/config.json &lt;<eof {="" "mcpservers":="" {="" "jarvis":="" {="" "command":="" "jarvis",="" "args":="" ["mcp",="" "start",="" "--transport",="" "stdio"],="" "env":="" {="" "memgraph_uri":="" "bolt:="" localhost:7687"="" }="" }="" }="" }="" eof<="" code=""></eof></code></pre><code>
+                </code></div><code>
+
+                <h4 class="font-bold text-slate-900 mb-3">Prueba CLI</h4>
+                <div class="bg-slate-100 p-3 rounded-lg">
+                  <code class="text-sm text-slate-700">
+                                    jarvis --help<br/>
+                                    jarvis skill create &#34;prueba&#34; --description &#34;Habilidad de prueba&#34;<br/>
+                                    jarvis query &#34;¿Qué es Jarvis?&#34;
+                                </code>
+                </div>
+              </code></div><code>
+
+              <div>
+                <h4 class="font-bold text-slate-900 mb-3">LangGraph y Automatización</h4>
+                <div class="bg-slate-900 text-green-400 p-4 rounded-lg text-sm mb-4 overflow-x-auto">
+                  <pre><code># Ejemplo de workflow LangGraph
+from langgraph.graph import StateGraph
+
+# Definir workflow
+workflow = StateGraph(AgentState)
+
+# Añadir nodos
+workflow.add_node(&#34;route_query&#34;, route_query)
+workflow.add_node(&#34;hybrid_search&#34;, hybrid_search)
+workflow.add_node(&#34;aggregate&#34;, aggregate_results)
+
+# Definir transiciones
+workflow.add_edge(&#34;route_query&#34;, &#34;hybrid_search&#34;)
+workflow.add_edge(&#34;hybrid_search&#34;, &#34;aggregate&#34;)
+
+# Compilar y ejecutar
+app = workflow.compile()
+result = app.invoke({&#34;query&#34;: &#34;Análisis de mercado&#34;})</code></pre>
+                </div>
+
+                <h4 class="font-bold text-slate-900 mb-3">Integración n8n</h4>
+                <div class="bg-slate-100 p-3 rounded-lg">
+                  <p class="text-sm text-slate-700 mb-2">
+                    <strong>Nodos personalizados:</strong>
+                  </p>
+                  <ul class="text-xs text-slate-600 space-y-1">
+                    <li>• Jarvis Search Node</li>
+                    <li>• Entity Extraction Node</li>
+                    <li>• Skill Deployment Node</li>
+                    <li>• Memory Maintenance Node</li>
+                  </ul>
+                </div>
+              </div>
+            </code></div><code>
+          </code></div><code>
+        </code></code></div><code><code>
+      </code></code></section><code><code>
+
+      <!-- Optimization Section -->
+      <section id="optimization" class="py-16 bg-white">
+        <div class="max-w-6xl mx-auto px-8">
+          <div class="mb-12">
+            <h2 class="font-tiempos text-4xl font-bold text-slate-900 mb-6">Optimización y Costos</h2>
+            <p class="text-xl text-slate-600">Maximizar eficiencia y minimizar gastos operativos</p>
+          </div>
+
+          <!-- Cost Optimization Strategy -->
+          <div class="mb-12">
+            <div class="bg-slate-50 rounded-xl p-8 border border-slate-200">
+              <h3 class="font-bold text-slate-900 mb-6 text-center">Estrategia de Optimización de Costos</h3>
+              <div class="mermaid-container">
+                <div class="mermaid-controls">
+                  <button class="mermaid-control-btn zoom-in" title="放大">
+                    <i class="fas fa-search-plus"></i>
+                  </button>
+                  <button class="mermaid-control-btn zoom-out" title="缩小">
+                    <i class="fas fa-search-minus"></i>
+                  </button>
+                  <button class="mermaid-control-btn reset-zoom" title="重置">
+                    <i class="fas fa-expand-arrows-alt"></i>
+                  </button>
+                  <button class="mermaid-control-btn fullscreen" title="全屏查看">
+                    <i class="fas fa-expand"></i>
+                  </button>
+                </div>
+                <div class="mermaid">
+                  graph LR
+                  subgraph &#34;Estrategias de Ahorro&#34;
+                  A[&#34;Routing Inteligente&#34;] --&gt; B[&#34;Uso Modelo Correcto&#34;]
+                  C[&#34;Caché Semántico&#34;] --&gt; D[&#34;Reducción 50-80%&#34;]
+                  E[&#34;Procesamiento Batch&#34;] --&gt; F[&#34;Eficiencia MiniMax&#34;]
+                  G[&#34;Quantización&#34;] --&gt; H[&#34;Reducción Memoria 75%&#34;]
+                  end
+
+                  subgraph &#34;Implementación&#34;
+                  I[&#34;Bibliotecario: GLM-5&#34;] --&gt; J[&#34;Costo: $0.15/1K tokens&#34;]
+                  K[&#34;Investigador: Kimi K2.5&#34;] --&gt; L[&#34;Costo: $0.60/1K tokens&#34;]
+                  M[&#34;Organizador: MiniMax&#34;] --&gt; N[&#34;Costo: $0.015/1K tokens&#34;]
+                  end
+
+                  subgraph &#34;Resultados&#34;
+                  O[&#34;Ahorro Total: 60-80%&#34;] --&gt; P[&#34;ROI: 3-5x&#34;]
+                  end
+
+                  B --&gt; I
+                  B --&gt; K
+                  B --&gt; M
+                  D --&gt; O
+                  F --&gt; N
+                  H --&gt; O
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Cost Breakdown -->
+          <div class="data-card mb-8">
+            <h3 class="font-bold text-slate-900 mb-6">Análisis Detallado de Costos</h3>
+
+            <div class="overflow-x-auto mb-6">
+              <table class="w-full text-sm">
+                <thead class="bg-slate-50">
+                  <tr>
+                    <th class="text-left p-3 font-bold">Componente</th>
+                    <th class="text-left p-3 font-bold">Costo Mensual</th>
+                    <th class="text-left p-3 font-bold">Optimización</th>
+                    <th class="text-left p-3 font-bold">Ahorro Potencial</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                  <tr class="bg-blue-50">
+                    <td class="p-3"><strong>API LLMs</strong></td>
+                    <td class="p-3">$300-800</td>
+                    <td class="p-3">Routing + caché</td>
+                    <td class="p-3">40-60%</td>
+                  </tr>
+                  <tr>
+                    <td class="p-3"><strong>Qdrant Cloud</strong></td>
+                    <td class="p-3">$50-200</td>
+                    <td class="p-3">Cuantización int8</td>
+                    <td class="p-3">75% memoria</td>
+                  </tr>
+                  <tr>
+                    <td class="p-3"><strong>Redis Cloud</strong></td>
+                    <td class="p-3">$20-100</td>
+                    <td class="p-3">Politicas TTL optimizadas</td>
+                    <td class="p-3">50% tamaño</td>
+                  </tr>
+                  <tr>
+                    <td class="p-3"><strong>Infraestructura</strong></td>
+                    <td class="p-3">$100-300</td>
+                    <td class="p-3">Híbrido local/cloud</td>
+                    <td class="p-3">30-50%</td>
+                  </tr>
+                  <tr class="bg-green-50 font-medium">
+                    <td class="p-3"><strong>Total</strong></td>
+                    <td class="p-3">$470-1400</td>
+                    <td class="p-3">Estrategias combinadas</td>
+                    <td class="p-3">60-80%</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="bg-yellow-50 p-4 rounded-lg">
+              <p class="text-sm text-yellow-800">
+                <strong>Caso de estudio:</strong> Para 100K desarrolladores activos, 10 interacciones/día, 2K tokens/interacción:
+                <br/>
+                • Costo original (GPT-4): ~$13,000/día
+                <br/>
+                • Costo optimizado (estrategia Jarvis): ~$3,900-6,500/día
+                <br/>
+                • <strong>Ahorro: 50-70% ($6,500-9,100/día)</strong>
+              </p>
+            </div>
+          </div>
+
+          <!-- Performance Metrics -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <div class="data-card">
+              <h3 class="font-bold text-slate-900 mb-4">
+                <i class="fas fa-tachometer-alt text-blue-600 mr-2"></i>
+                Métricas de Rendimiento Clave
+              </h3>
+
+              <div class="space-y-4">
+                <div>
+                  <h4 class="font-bold text-slate-900 mb-2">Latencia de Respuesta</h4>
+                  <div class="performance-bar">
+                    <div class="performance-fill" style="width: 85%"></div>
+                  </div>
+                  <p class="text-sm text-slate-600">P99 &lt; 200ms para consultas simples</p>
+                  </div>
+
+                  <div>
+                    <h4 class="font-bold text-slate-900 mb-2">Throughput de Ingesta</h4>
+                    <div class="performance-bar">
+                      <div class="performance-fill" style="width: 92%"></div>
+                    </div>
+                    <p class="text-sm text-slate-600">1000+ documentos/hora</p>
+                  </div>
+
+                  <div>
+                    <h4 class="font-bold text-slate-900 mb-2">Precisión de Búsqueda</h4>
+                    <div class="performance-bar">
+                      <div class="performance-fill" style="width: 88%"></div>
+                    </div>
+                    <p class="text-sm text-slate-600">nDCG@10: 38.7 con BGE-m3</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="data-card">
+                <h3 class="font-bold text-slate-900 mb-4">
+                  <i class="fas fa-chart-line text-green-600 mr-2"></i>
+                  Monitoreo y Alertas
+                </h3>
+
+                <div class="space-y-3">
+                  <div class="bg-blue-50 p-3 rounded">
+                    <strong class="text-blue-900">Métricas Clave</strong>
+                    <ul class="text-sm text-blue-700 mt-1 space-y-1">
+                      <li>• Latencia de consultas y errores</li>
+                      <li>• Uso de tokens y costos por agente</li>
+                      <li>• Tamaño y salud de bases de datos</li>
+                      <li>• Tasa de aciertos de caché</li>
+                    </ul>
+                  </div>
+
+                  <div class="bg-green-50 p-3 rounded">
+                    <strong class="text-green-900">Alertas Configurables</strong>
+                    <ul class="text-sm text-green-700 mt-1 space-y-1">
+                      <li>• Umbral de costos diarios/semanales</li>
+                      <li>• Degradación de rendimiento</li>
+                      <li>• Errores críticos en agentes</li>
+                      <li>• Necesidad de mantenimiento</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Best Practices -->
+            <div class="data-card">
+              <h3 class="font-bold text-slate-900 mb-4">
+                <i class="fas fa-lightbulb text-purple-600 mr-2"></i>
+                Mejores Prácticas para Producción
+              </h3>
+
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                  <h4 class="font-bold text-slate-900 mb-3">Escalabilidad</h4>
+                  <ul class="text-sm text-slate-700 space-y-2">
+                    <li>• <strong>Arquitectura sin estado:</strong> Agentes sin dependencia de estado local</li>
+                    <li>• <strong>Escalado horizontal:</strong> Múltiples instancias por tipo de agente</li>
+                    <li>• <strong>Balanceo de carga:</strong> Routing inteligente por complejidad</li>
+                    <li>• <strong>Auto-scaling:</strong> Basado en métricas de cola y latencia</li>
+                  </ul>
+
+                  <h4 class="font-bold text-slate-900 mb-3 mt-4">Seguridad</h4>
+                  <ul class="text-sm text-slate-700 space-y-2">
+                    <li>• <strong>Aislamiento de datos:</strong> Multi-tenancia con Context Cores</li>
+                    <li>• <strong>Encriptación:</strong> En tránsito y en reposo</li>
+                    <li>• <strong>Autenticación:</strong> JWT + RBAC para operaciones</li>
+                    <li>• <strong>Auditoría:</strong> Logging completo de operaciones</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h4 class="font-bold text-slate-900 mb-3">Mantenimiento</h4>
+                  <ul class="text-sm text-slate-700 space-y-2">
+                    <li>• <strong>Backups automáticos:</strong> Memgraph y Qdrant</li>
+                    <li>• <strong>Actualizaciones sin downtime:</strong> Blue-green deployment</li>
+                    <li>• <strong>Monitoreo proactivo:</strong> Alertas de degradación</li>
+                    <li>• <strong>Pruebas de carga:</strong> Validación regular de escala</li>
+                  </ul>
+
+                  <h4 class="font-bold text-slate-900 mb-3 mt-4">Optimización Continua</h4>
+                  <ul class="text-sm text-slate-700 space-y-2">
+                    <li>• <strong>Análisis de patrones de uso:</strong> Ajuste de TTL y caché</li>
+                    <li>• <strong>Reentrenamiento de embeddings:</strong> Adaptación a dominio</li>
+                    <li>• <strong>Balanceo de costos:</strong> Routing dinámico por precio</li>
+                    <li>• <strong>Compresión de datos:</strong> Reducción de almacenamiento</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+      </section>
+
+      <!-- Footer -->
+      <footer class="bg-slate-900 text-white py-12">
+        <div class="max-w-6xl mx-auto px-8">
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div>
+              <h3 class="font-tiempos text-xl font-bold mb-4">Arquitectura Jarvis</h3>
+              <p class="text-slate-300 text-sm">
+                Guía completa para construir asistentes personales inteligentes con memoria persistente y agentes especializados.
+              </p>
+            </div>
+
+            <div>
+              <h4 class="font-bold mb-4">Recursos Clave</h4>
+              <ul class="text-slate-300 text-sm space-y-2">
+                <li>
+                  <a href="https://github.com/trustgraph-ai/.github" class="citation text-blue-400" target="_blank">TrustGraph.ai</a>
+                </li>
+                <li>
+                  <a href="https://memgraph.com/docs/ai-ecosystem/graph-rag/examples-and-demos" class="citation text-blue-400" target="_blank">Memgraph AI Ecosystem</a>
+                </li>
+                <li>
+                  <a href="https://qdrant.tech/documentation/tutorials-build-essentials/agentic-rag-langgraph/" class="citation text-blue-400" target="_blank">Qdrant Agentic RAG</a>
+                </li>
+                <li>
+                  <a href="https://redis.io/blog/build-smarter-ai-agents-manage-short-term-and-long-term-memory-with-redis/" class="citation text-blue-400" target="_blank">Redis AI Memory</a>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 class="font-bold mb-4">Modelos Referenciados</h4>
+              <ul class="text-slate-300 text-sm space-y-2">
+                <li>
+                  <a href="https://github.com/MoonshotAI/Kimi-K2.5" class="citation text-blue-400" target="_blank">Kimi K2.5</a>
+                </li>
+                <li>
+                  <a href="https://zhuanlan.zhihu.com/p/2005568078256285603" class="citation text-blue-400" target="_blank">MiniMax 2.5</a>
+                </li>
+                <li>
+                  <a href="https://unsloth.ai/docs/models/glm-5" class="citation text-blue-400" target="_blank">GLM-5</a>
+                </li>
+                <li>
+                  <a href="https://opc.csdn.net/69845f9c7bbde9200b9842ca.html" class="citation text-blue-400" target="_blank">BGE-m3 Embeddings</a>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="border-t border-slate-700 mt-8 pt-8">
+            <p class="text-center text-slate-400 text-sm">
+              Esta guía proporciona una arquitectura de referencia completa para construir sistemas de asistentes personales tipo Jarvis.
+              Las implementaciones específicas pueden requerir ajustes según casos de uso particulares.
+            </p>
+          </div>
+        </div>
+      </footer>
+    </code></code></div><code><code>
+
+    <script>
+        // Initialize Mermaid
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'base',
+            themeVariables: {
+                primaryColor: '#3b82f6',
+                primaryTextColor: '#1e293b',
+                primaryBorderColor: '#475569',
+                lineColor: '#64748b',
+                secondaryColor: '#f8fafc',
+                tertiaryColor: '#e2e8f0',
+                background: '#ffffff',
+                mainBkg: '#ffffff',
+                secondBkg: '#f8fafc',
+                tertiaryBkg: '#e2e8f0'
+            },
+            flowchart: {
+                useMaxWidth: true,
+                htmlLabels: true,
+                curve: 'basis'
+            },
+            sequence: {
+                useMaxWidth: true,
+                wrap: true
+            },
+            gantt: {
+                useMaxWidth: true
+            }
+        });
+
+        // Initialize Mermaid Controls for zoom and pan
+        function initializeMermaidControls() {
+            const containers = document.querySelectorAll('.mermaid-container');
+
+            containers.forEach(container => {
+            const mermaidElement = container.querySelector('.mermaid');
+            let scale = 1;
+            let isDragging = false;
+            let startX, startY, translateX = 0, translateY = 0;
+
+            // 触摸相关状态
+            let isTouch = false;
+            let touchStartTime = 0;
+            let initialDistance = 0;
+            let initialScale = 1;
+            let isPinching = false;
+
+            // Zoom controls
+            const zoomInBtn = container.querySelector('.zoom-in');
+            const zoomOutBtn = container.querySelector('.zoom-out');
+            const resetBtn = container.querySelector('.reset-zoom');
+            const fullscreenBtn = container.querySelector('.fullscreen');
+
+            function updateTransform() {
+                mermaidElement.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+
+                if (scale > 1) {
+                container.classList.add('zoomed');
+                } else {
+                container.classList.remove('zoomed');
+                }
+
+                mermaidElement.style.cursor = isDragging ? 'grabbing' : 'grab';
+            }
+
+            if (zoomInBtn) {
+                zoomInBtn.addEventListener('click', () => {
+                scale = Math.min(scale * 1.25, 4);
+                updateTransform();
+                });
+            }
+
+            if (zoomOutBtn) {
+                zoomOutBtn.addEventListener('click', () => {
+                scale = Math.max(scale / 1.25, 0.3);
+                if (scale <= 1) {
+                    translateX = 0;
+                    translateY = 0;
+                }
+                updateTransform();
+                });
+            }
+
+            if (resetBtn) {
+                resetBtn.addEventListener('click', () => {
+                scale = 1;
+                translateX = 0;
+                translateY = 0;
+                updateTransform();
+                });
+            }
+
+            if (fullscreenBtn) {
+                fullscreenBtn.addEventListener('click', () => {
+                if (container.requestFullscreen) {
+                    container.requestFullscreen();
+                } else if (container.webkitRequestFullscreen) {
+                    container.webkitRequestFullscreen();
+                } else if (container.msRequestFullscreen) {
+                    container.msRequestFullscreen();
+                }
+                });
+            }
+
+            // Mouse Events
+            mermaidElement.addEventListener('mousedown', (e) => {
+                if (isTouch) return; // 如果是触摸设备，忽略鼠标事件
+
+                isDragging = true;
+                startX = e.clientX - translateX;
+                startY = e.clientY - translateY;
+                mermaidElement.style.cursor = 'grabbing';
+                updateTransform();
+                e.preventDefault();
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (isDragging && !isTouch) {
+                translateX = e.clientX - startX;
+                translateY = e.clientY - startY;
+                updateTransform();
+                }
+            });
+
+            document.addEventListener('mouseup', () => {
+                if (isDragging && !isTouch) {
+                isDragging = false;
+                mermaidElement.style.cursor = 'grab';
+                updateTransform();
+                }
+            });
+
+            document.addEventListener('mouseleave', () => {
+                if (isDragging && !isTouch) {
+                isDragging = false;
+                mermaidElement.style.cursor = 'grab';
+                updateTransform();
+                }
+            });
+
+            // 获取两点之间的距离
+            function getTouchDistance(touch1, touch2) {
+                return Math.hypot(
+                touch2.clientX - touch1.clientX,
+                touch2.clientY - touch1.clientY
+                );
+            }
+
+            // Touch Events - 触摸事件处理
+            mermaidElement.addEventListener('touchstart', (e) => {
+                isTouch = true;
+                touchStartTime = Date.now();
+
+                if (e.touches.length === 1) {
+                // 单指拖动
+                isPinching = false;
+                isDragging = true;
+
+                const touch = e.touches[0];
+                startX = touch.clientX - translateX;
+                startY = touch.clientY - translateY;
+
+                } else if (e.touches.length === 2) {
+                // 双指缩放
+                isPinching = true;
+                isDragging = false;
+
+                const touch1 = e.touches[0];
+                const touch2 = e.touches[1];
+                initialDistance = getTouchDistance(touch1, touch2);
+                initialScale = scale;
+                }
+
+                e.preventDefault();
+            }, { passive: false });
+
+            mermaidElement.addEventListener('touchmove', (e) => {
+                if (e.touches.length === 1 && isDragging && !isPinching) {
+                // 单指拖动
+                const touch = e.touches[0];
+                translateX = touch.clientX - startX;
+                translateY = touch.clientY - startY;
+                updateTransform();
+
+                } else if (e.touches.length === 2 && isPinching) {
+                // 双指缩放
+                const touch1 = e.touches[0];
+                const touch2 = e.touches[1];
+                const currentDistance = getTouchDistance(touch1, touch2);
+
+                if (initialDistance > 0) {
+                    const newScale = Math.min(Math.max(
+                    initialScale * (currentDistance / initialDistance),
+                    0.3
+                    ), 4);
+                    scale = newScale;
+                    updateTransform();
+                }
+                }
+
+                e.preventDefault();
+            }, { passive: false });
+
+            mermaidElement.addEventListener('touchend', (e) => {
+                // 重置状态
+                if (e.touches.length === 0) {
+                isDragging = false;
+                isPinching = false;
+                initialDistance = 0;
+
+                // 延迟重置isTouch，避免鼠标事件立即触发
+                setTimeout(() => {
+                    isTouch = false;
+                }, 100);
+                } else if (e.touches.length === 1 && isPinching) {
+                // 从双指变为单指，切换为拖动模式
+                isPinching = false;
+                isDragging = true;
+
+                const touch = e.touches[0];
+                startX = touch.clientX - translateX;
+                startY = touch.clientY - translateY;
+                }
+
+                updateTransform();
+            });
+
+            mermaidElement.addEventListener('touchcancel', (e) => {
+                isDragging = false;
+                isPinching = false;
+                initialDistance = 0;
+
+                setTimeout(() => {
+                isTouch = false;
+                }, 100);
+
+                updateTransform();
+            });
+
+            // Enhanced wheel zoom with better center point handling
+            container.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const rect = container.getBoundingClientRect();
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+
+                const delta = e.deltaY > 0 ? 0.9 : 1.1;
+                const newScale = Math.min(Math.max(scale * delta, 0.3), 4);
+
+                // Adjust translation to zoom towards center
+                if (newScale !== scale) {
+                const scaleDiff = newScale / scale;
+                translateX = translateX * scaleDiff;
+                translateY = translateY * scaleDiff;
+                scale = newScale;
+
+                if (scale <= 1) {
+                    translateX = 0;
+                    translateY = 0;
+                }
+
+                updateTransform();
+                }
+            });
+
+            // Initialize display
+            updateTransform();
+            });
+        }
+
+        // Initialize mermaid controls after page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                initializeMermaidControls();
+            }, 1500);
+        });
+
+        // Table of Contents functionality
+        function toggleTOC() {
+            const toc = document.getElementById('toc');
+            toc.classList.toggle('open');
+        }
+
+        function closeTOC() {
+            const toc = document.getElementById('toc');
+            toc.classList.remove('open');
+        }
+
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                    
+                    // Close mobile TOC after clicking
+                    if (window.innerWidth <= 1024) {
+                        closeTOC();
+                    }
+                }
+            });
+        });
+
+        // Active section highlighting
+        const observerOptions = {
+            rootMargin: '-20% 0px -70% 0px',
+            threshold: 0
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    // Remove active class from all TOC links
+                    document.querySelectorAll('.toc-link').forEach(link => {
+                        link.classList.remove('active');
+                    });
+                    
+                    // Add active class to current section
+                    const activeLink = document.querySelector(`a[href="#${entry.target.id}"]`);
+                    if (activeLink) {
+                        activeLink.classList.add('active');
+                    }
+                }
+            });
+        }, observerOptions);
+
+        // Observe all sections
+        document.querySelectorAll('section[id]').forEach(section => {
+            observer.observe(section);
+        });
+
+        // Close mobile TOC when clicking outside
+        document.addEventListener('click', function(event) {
+            const toc = document.getElementById('toc');
+            const toggleButton = document.querySelector('button[onclick="toggleTOC()"]');
+            
+            if (window.innerWidth <= 1024 && 
+                !toc.contains(event.target) && 
+                event.target !== toggleButton &&
+                toc.classList.contains('open')) {
+                closeTOC();
+            }
+        });
+        
+        // Close mobile TOC on window resize to desktop
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 1024) {
+                closeTOC();
+            }
+        });
+    </script>
+  
+
+</code></code></body></html>

@@ -1,0 +1,1210 @@
+<!DOCTYPE html><html lang="es"><head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Arquitectura de Memoria Unificada para Agentes de IA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Canela:wght@300;400;700&amp;family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+    <style>
+        :root {
+            --graphite: #2F4F4F;
+            --graphite-light: #5A7A7A;
+            --graphite-dark: #1F3F3F;
+            --sage: #9CAF88;
+            --sage-light: #B8D0A4;
+            --sage-dark: #7A9F68;
+            --cream: #F5F5DC;
+            --cream-light: #FAFAEA;
+            --cream-dark: #E5E5CC;
+        }
+        
+        .font-canela { font-family: 'Canela', serif; }
+        .font-inter { font-family: 'Inter', sans-serif; }
+        
+        body {
+            background: linear-gradient(135deg, var(--cream-light) 0%, #FFFFFF 100%);
+            color: var(--graphite);
+            line-height: 1.7;
+        }
+        
+        .hero-gradient {
+            background: linear-gradient(135deg, var(--graphite-dark) 0%, var(--graphite) 50%, var(--graphite-light) 100%);
+        }
+        
+        .toc-sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: 280px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-right: 1px solid rgba(47, 79, 79, 0.1);
+            z-index: 1000;
+            overflow-y: auto;
+            padding: 2rem 1.5rem;
+        }
+        
+        .main-content {
+            margin-left: 280px;
+            min-height: 100vh;
+        }
+        
+        .toc-link {
+            transition: all 0.2s ease;
+            border-left: 2px solid transparent;
+        }
+        
+        .toc-link:hover, .toc-link.active {
+            border-left-color: var(--sage);
+            background: var(--cream);
+            color: var(--graphite-dark);
+        }
+        
+        .section-divider {
+            height: 2px;
+            background: linear-gradient(90deg, var(--sage) 0%, transparent 100%);
+            margin: 3rem 0;
+        }
+        
+        .bento-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+            align-items: start;
+        }
+        
+        .insight-highlight {
+            background: linear-gradient(45deg, var(--sage-light), var(--sage));
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: inline-block;
+            margin: 0.5rem 0;
+        }
+        
+        .citation-link {
+            color: var(--sage-dark);
+            text-decoration: none;
+            font-weight: 500;
+            border-bottom: 1px dotted var(--sage);
+            transition: all 0.2s ease;
+        }
+        
+        .citation-link:hover {
+            color: var(--graphite);
+            border-bottom-color: var(--graphite);
+        }
+        
+        .comparison-card {
+            background: white;
+            border: 1px solid rgba(47, 79, 79, 0.1);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(47, 79, 79, 0.08);
+            transition: all 0.3s ease;
+        }
+        
+        .comparison-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(47, 79, 79, 0.12);
+        }
+        
+        @media (max-width: 768px) {
+            .toc-sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+                width: 100%;
+            }
+            
+            .toc-sidebar.open {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+            
+            .bento-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 1024px) {
+            body {
+                overflow-x: hidden;
+            }
+        }
+    </style>
+  <base target="_blank">
+</head>
+
+  <body class="font-inter">
+    <!-- Mobile Toggle Button -->
+    <button id="tocToggle" class="fixed top-4 left-4 z-50 p-2 bg-white rounded shadow md:hidden">
+      <i class="fas fa-bars text-graphite"></i>
+    </button>
+
+    <!-- Table of Contents Sidebar -->
+    <nav class="toc-sidebar">
+      <div class="mb-8">
+        <h3 class="font-canela text-xl font-bold text-graphite-dark mb-4">Índice</h3>
+      </div>
+
+      <div class="space-y-2">
+        <a href="#executive-summary" class="toc-link block py-2 px-3 rounded text-sm">Resumen Ejecutivo</a>
+        <a href="#fundamentals" class="toc-link block py-2 px-3 rounded text-sm">1. Fundamentos y Tecnologías</a>
+        <div class="ml-4 space-y-1">
+          <a href="#trustgraph" class="toc-link block py-1 px-3 rounded text-xs text-graphite-light">TrustGraph</a>
+          <a href="#graphiti" class="toc-link block py-1 px-3 rounded text-xs text-graphite-light">Graphiti</a>
+          <a href="#mem0" class="toc-link block py-1 px-3 rounded text-xs text-graphite-light">Mem0</a>
+          <a href="#comparison" class="toc-link block py-1 px-3 rounded text-xs text-graphite-light">Comparativa</a>
+        </div>
+        <a href="#implementation" class="toc-link block py-2 px-3 rounded text-sm">2. Implementación Unificada</a>
+        <div class="ml-4 space-y-1">
+          <a href="#architecture" class="toc-link block py-1 px-3 rounded text-xs text-graphite-light">Arquitectura Centralizada</a>
+          <a href="#integration" class="toc-link block py-1 px-3 rounded text-xs text-graphite-light">Integración con Agentes</a>
+        </div>
+        <a href="#skills-system" class="toc-link block py-2 px-3 rounded text-sm">3. Sistema de Skills</a>
+        <div class="ml-4 space-y-1">
+          <a href="#taxonomy" class="toc-link block py-1 px-3 rounded text-xs text-graphite-light">Taxonomía de Skills</a>
+          <a href="#night-agent" class="toc-link block py-1 px-3 rounded text-xs text-graphite-light">Agente Nocturno</a>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Hero Section -->
+      <section class="hero-gradient text-white relative overflow-hidden">
+        <div class="absolute inset-0 opacity-20">
+          <img src="https://kimi-web-img.moonshot.cn/img/img.freepik.com/6ae2daa2e8da7d9ee781fc62793fc50edf8559b2.jpg" alt="Abstract neural network connections" class="w-full h-full object-cover" size="wallpaper" aspect="wide" color="blue" query="abstract neural network connections" referrerpolicy="no-referrer" data-modified="1" data-score="0.00"/>
+        </div>
+
+        <div class="relative z-10 px-4 md:px-8 py-16">
+          <div class="bento-grid max-w-7xl mx-auto">
+            <div class="space-y-6">
+              <h1 class="font-canela text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
+                <em class="block text-sage-light text-2xl md:text-3xl font-light mb-4">Arquitectura de Memoria Unificada</em>
+                TrustGraph, Graphiti y Mem0 para Agentes de IA
+              </h1>
+              <p class="text-lg md:text-xl text-gray-200 max-w-3xl">
+                Análisis comparativo de tecnologías de grafo para memoria persistente,
+                integración con agentes de código y estrategias de implementación a escala.
+              </p>
+            </div>
+
+            <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-4 md:p-6 space-y-4">
+              <h3 class="font-canela text-lg md:text-xl font-bold">TL;DR</h3>
+              <div class="space-y-3 text-sm">
+                <div class="flex items-start gap-3">
+                  <i class="fas fa-bolt text-sage-light mt-1"></i>
+                  <div>
+                    <strong>Mem0:</strong> Más económica y rápida para conversaciones (~91% ahorro de tokens)
+                  </div>
+                </div>
+                <div class="flex items-start gap-3">
+                  <i class="fas fa-shield-alt text-sage-light mt-1"></i>
+                  <div>
+                    <strong>TrustGraph:</strong> Máximo control, TCO óptimo a gran escala, soberanía de datos total
+                  </div>
+                </div>
+                <div class="flex items-start gap-3">
+                  <i class="fas fa-clock text-sage-light mt-1"></i>
+                  <div>
+                    <strong>Graphiti:</strong> Razonamiento temporal avanzado para escenarios empresariales
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Executive Summary -->
+      <section id="executive-summary" class="px-8 py-16 bg-white">
+        <div class="max-w-4xl mx-auto">
+          <h2 class="font-canela text-3xl font-bold mb-8 text-graphite-dark">Resumen Ejecutivo</h2>
+
+          <div class="prose prose-lg max-w-none">
+            <p class="text-xl text-graphite-light mb-6 font-light">
+              La memoria unificada para agentes de IA representa el siguiente salto evolutivo en la construcción de sistemas inteligentes,
+              permitiendo que múltiples agentes compartan contexto, aprendizaje y conocimiento organizacional de manera estructurada y persistente.
+            </p>
+
+            <div class="grid md:grid-cols-3 gap-6 my-8">
+              <div class="comparison-card text-center">
+                <div class="text-3xl mb-4">🚀</div>
+                <h3 class="font-canela text-lg font-bold mb-2">Rapidez</h3>
+                <p class="text-sm text-graphite-light">Implementación en días, no semanas, con APIs optimizadas para developer experience</p>
+              </div>
+
+              <div class="comparison-card text-center">
+                <div class="text-3xl mb-4">💰</div>
+                <h3 class="font-canela text-lg font-bold mb-2">Eficiencia</h3>
+                <p class="text-sm text-graphite-light">Reducción de costos de tokens de hasta 91% en escenarios conversacionales</p>
+              </div>
+
+              <div class="comparison-card text-center">
+                <div class="text-3xl mb-4">🔒</div>
+                <h3 class="font-canela text-lg font-bold mb-2">Control</h3>
+                <p class="text-sm text-graphite-light">Soberanía de datos total con opciones self-hosted y air-gapped</p>
+              </div>
+            </div>
+
+            <p>
+              Nuestro análisis revela que <strong>no existe una solución universalmente óptima</strong>, sino trade-offs deliberados
+              que priorizan diferentes dimensiones de valor: la facilidad de integración de Mem0 se logra mediante abstracciones opinionadas
+              que aceleran el desarrollo inicial, mientras que la flexibilidad total de TrustGraph exige mayor inversión arquitectónica
+              pero ofrece retornos crecientes en escenarios de complejidad elevada.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <div class="section-divider"></div>
+
+      <!-- Fundamentals Section -->
+      <section id="fundamentals" class="px-8 py-16">
+        <div class="max-w-6xl mx-auto">
+          <h2 class="font-canela text-4xl font-bold mb-12 text-graphite-dark text-center">
+            Fundamentos y Comparativa de Tecnologías
+          </h2>
+
+          <!-- TrustGraph -->
+          <div id="trustgraph" class="mb-16">
+            <div class="grid lg:grid-cols-3 gap-8 mb-8">
+              <div class="lg:col-span-2">
+                <h3 class="font-canela text-2xl font-bold mb-6 text-graphite-dark">TrustGraph: Sistema Operativo de Contexto Open Source</h3>
+
+                <div class="prose prose-lg max-w-none mb-6">
+                  <p>
+                    TrustGraph se distingue por su <strong>filosofía de soberanía de datos y control total sobre la infraestructura</strong>.
+                    Desarrollado bajo licencia Apache 2.0, permite despliegues self-hosted en cualquier entorno: servidores on-premise,
+                    nubes públicas, configuraciones híbridas, o entornos air-gapped completamente desconectados de internet
+                    <a href="https://trustgraph.ai/guides/comparisons/trustgraph-vs-graphlit/" class="citation-link">[25]</a>.
+                  </p>
+                </div>
+
+                <div class="bg-sage/10 rounded-lg p-6 mb-6">
+                  <h4 class="font-bold text-graphite-dark mb-3">Ventajas Clave</h4>
+                  <ul class="space-y-2 text-sm">
+                    <li class="flex items-start gap-2">
+                      <i class="fas fa-lock text-sage mt-1"></i>
+                      <span><strong>Soberanía de datos total:</strong> Única opción viable para sectores regulados (HIPAA, PCI-DSS, defensa)</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                      <i class="fas fa-cogs text-sage mt-1"></i>
+                      <span><strong>Flexibilidad arquitectónica:</strong> Adaptadores para Neo4j, Memgraph, FalkorDB, Cassandra</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                      <i class="fas fa-chart-line text-sage mt-1"></i>
+                      <span><strong>Costos predecibles:</strong> Sin cargos por consulta o entidades almacenadas</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+                <h4 class="font-canela text-lg font-bold mb-4 text-graphite-dark">Context Graphs</h4>
+                <p class="text-sm text-graphite-light mb-4">Abstracción central que captura metadatos de procedencia, confianza y temporalidad</p>
+
+                <div class="space-y-3">
+                  <div class="flex items-center gap-3">
+                    <div class="w-3 h-3 bg-sage rounded-full"></div>
+                    <span class="text-sm">¿Qué se sabe?</span>
+                  </div>
+                  <div class="flex items-center gap-3">
+                    <div class="w-3 h-3 bg-graphite-light rounded-full"></div>
+                    <span class="text-sm">¿Cómo se derivó?</span>
+                  </div>
+                  <div class="flex items-center gap-3">
+                    <div class="w-3 h-3 bg-cream-dark rounded-full"></div>
+                    <span class="text-sm">¿Cuándo fue válido?</span>
+                  </div>
+                  <div class="flex items-center gap-3">
+                    <div class="w-3 h-3 bg-sage-dark rounded-full"></div>
+                    <span class="text-sm">¿Con qué certeza?</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="insight-highlight">
+              <i class="fas fa-lightbulb mr-2"></i>
+              TrustGraph exhibe ahorros de 40-60% en TCO comparado con alternativas SaaS en despliegues a gran escala de 3-5 años
+            </div>
+          </div>
+
+          <!-- Graphiti -->
+          <div id="graphiti" class="mb-16">
+            <div class="grid lg:grid-cols-2 gap-8 mb-8">
+              <div>
+                <h3 class="font-canela text-2xl font-bold mb-6 text-graphite-dark">Graphiti: Grafos Temporales para Memoria Dinámica</h3>
+
+                <div class="prose prose-lg max-w-none mb-6">
+                  <p>
+                    Graphiti representa la apuesta más sofisticada por la <strong>dimensión temporal como primera clase del diseño</strong>.
+                    Mientras que la mayoría de los sistemas almacenan el estado actual del conocimiento, Graphiti mantiene
+                    <strong>registro completo de evolución histórica</strong>, permitiendo preguntas que trascienden el presente
+                    <a href="https://adg.csdn.net/694cf3e65b9f5f31781aa429.html" class="citation-link">[56]</a>.
+                  </p>
+                </div>
+
+                <div class="bg-graphite/5 rounded-lg p-6">
+                  <h4 class="font-bold text-graphite-dark mb-3">Modelo de Tres Capas</h4>
+                  <div class="space-y-4">
+                    <div class="border-l-4 border-sage pl-4">
+                      <h5 class="font-semibold text-graphite-dark">Episodic Layer</h5>
+                      <p class="text-sm text-graphite-light">Captura interacciones específicas: conversaciones, transacciones, eventos observados</p>
+                    </div>
+                    <div class="border-l-4 border-graphite-light pl-4">
+                      <h5 class="font-semibold text-graphite-dark">Semantic Layer</h5>
+                      <p class="text-sm text-graphite-light">Extrae entidades y relaciones persistentes: personas, organizaciones, conceptos</p>
+                    </div>
+                    <div class="border-l-4 border-sage-dark pl-4">
+                      <h5 class="font-semibold text-graphite-dark">Procedural Layer</h5>
+                      <p class="text-sm text-graphite-light">Almacena workflows y patrones aprendidos: rutinas de resolución de problemas</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="bg-white rounded-xl p-6 border border-gray-200">
+                <h4 class="font-canela text-lg font-bold mb-4 text-graphite-dark">Modelos de Despliegue</h4>
+
+                <div class="space-y-4">
+                  <div class="bg-sage/10 rounded-lg p-4">
+                    <h5 class="font-semibold text-sage-dark mb-2">SaaS Cloud-Only</h5>
+                    <ul class="text-xs space-y-1 text-graphite-light">
+                      <li>• Provisioning instantáneo</li>
+                      <li>• Completamente gestionado</li>
+                      <li>• Pricing usage-based</li>
+                      <li>• Ideal para prototipado rápido</li>
+                    </ul>
+                  </div>
+
+                  <div class="bg-graphite/10 rounded-lg p-4">
+                    <h5 class="font-semibold text-graphite-dark mb-2">Self-Hosted Enterprise</h5>
+                    <ul class="text-xs space-y-1 text-graphite-light">
+                      <li>• Setup inicial de 2-4 semanas</li>
+                      <li>• Control total del backend</li>
+                      <li>• Licenciamiento + infraestructura</li>
+                      <li>• Para organizaciones reguladas</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="insight-highlight">
+              <i class="fas fa-clock mr-2"></i>
+              Graphiti permite consultas como: &#34;¿Qué sabíamos sobre el cliente X en marzo del año pasado?&#34;
+            </div>
+          </div>
+
+          <!-- Mem0 -->
+          <div id="mem0" class="mb-16">
+            <div class="grid lg:grid-cols-3 gap-8 mb-8">
+              <div class="lg:col-span-2">
+                <h3 class="font-canela text-2xl font-bold mb-6 text-graphite-dark">Mem0: Capa de Memoria Universal con GraphRAG</h3>
+
+                <div class="prose prose-lg max-w-none mb-6">
+                  <p>
+                    Mem0 se posiciona estratégicamente como la <strong>capa de memoria de menor fricción</strong> para equipos que necesitan
+                    agregar persistencia a agentes de IA sin inversión extensiva en expertise de grafos. Su arquitectura reconoce
+                    <strong>cuatro tipos de memoria</strong> que reflejan la complejidad de la cognición humana
+                    <a href="https://adg.csdn.net/694cf3e65b9f5f31781aa429.html" class="citation-link">[56]</a>.
+                  </p>
+                </div>
+
+                <div class="bg-gradient-to-r from-sage/10 to-sage/5 rounded-lg p-6 mb-6">
+                  <h4 class="font-bold text-graphite-dark mb-4">Compresión de Tokens Innovadora</h4>
+                  <div class="grid grid-cols-2 gap-4">
+                    <div class="text-center">
+                      <div class="text-3xl font-bold text-sage-dark">~91%</div>
+                      <div class="text-sm text-graphite-light">Reducción de latencia</div>
+                    </div>
+                    <div class="text-center">
+                      <div class="text-3xl font-bold text-sage-dark">3-5</div>
+                      <div class="text-sm text-graphite-light">Líneas de código para integración</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+                <h4 class="font-canela text-lg font-bold mb-4 text-graphite-dark">Tipos de Memoria</h4>
+
+                <div class="space-y-4">
+                  <div class="flex items-start gap-3">
+                    <div class="w-2 h-2 bg-sage rounded-full mt-2"></div>
+                    <div>
+                      <h5 class="font-semibold text-sm">Working</h5>
+                      <p class="text-xs text-graphite-light">Contexto inmediato de conversación</p>
+                    </div>
+                  </div>
+                  <div class="flex items-start gap-3">
+                    <div class="w-2 h-2 bg-graphite-light rounded-full mt-2"></div>
+                    <div>
+                      <h5 class="font-semibold text-sm">Factual</h5>
+                      <p class="text-xs text-graphite-light">Hechos persistentes sobre usuarios</p>
+                    </div>
+                  </div>
+                  <div class="flex items-start gap-3">
+                    <div class="w-2 h-2 bg-sage-dark rounded-full mt-2"></div>
+                    <div>
+                      <h5 class="font-semibold text-sm">Episódica</h5>
+                      <p class="text-xs text-graphite-light">Experiencias específicas pasadas</p>
+                    </div>
+                  </div>
+                  <div class="flex items-start gap-3">
+                    <div class="w-2 h-2 bg-cream-dark rounded-full mt-2"></div>
+                    <div>
+                      <h5 class="font-semibold text-sm">Semántica</h5>
+                      <p class="text-xs text-graphite-light">Conceptos abstractos y relaciones</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="insight-highlight">
+              <i class="fas fa-code mr-2"></i>
+              Mem0 permite integración funcional en 3-5 líneas de código con APIs intuitivas y comunidad activa
+            </div>
+          </div>
+
+          <!-- Comparison Table -->
+          <div id="comparison" class="mb-16">
+            <h3 class="font-canela text-2xl font-bold mb-8 text-graphite-dark text-center">Análisis Comparativo Técnico</h3>
+
+            <div class="overflow-x-auto">
+              <table class="w-full bg-white rounded-xl shadow-sm border border-gray-200">
+                <thead class="bg-graphite/5">
+                  <tr>
+                    <th class="text-left p-4 font-semibold text-graphite-dark">Dimensión</th>
+                    <th class="text-center p-4 font-semibold text-sage-dark">TrustGraph</th>
+                    <th class="text-center p-4 font-semibold text-graphite-dark">Graphiti</th>
+                    <th class="text-center p-4 font-semibold text-sage-dark">Mem0</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                  <tr class="hover:bg-gray-50">
+                    <td class="p-4 font-medium">Control de datos</td>
+                    <td class="p-4 text-center"><span class="bg-sage/20 text-sage-dark px-2 py-1 rounded text-xs font-semibold">Total</span></td>
+                    <td class="p-4 text-center"><span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs">Parcial</span></td>
+                    <td class="p-4 text-center"><span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">Flexible</span></td>
+                  </tr>
+                  <tr class="hover:bg-gray-50">
+                    <td class="p-4 font-medium">Facilidad de integración</td>
+                    <td class="p-4 text-center"><span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs">Media</span></td>
+                    <td class="p-4 text-center"><span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs">Media</span></td>
+                    <td class="p-4 text-center"><span class="bg-sage/20 text-sage-dark px-2 py-1 rounded text-xs font-semibold">Alta</span></td>
+                  </tr>
+                  <tr class="hover:bg-gray-50">
+                    <td class="p-4 font-medium">Costo predecible</td>
+                    <td class="p-4 text-center"><span class="bg-sage/20 text-sage-dark px-2 py-1 rounded text-xs font-semibold">Sí</span></td>
+                    <td class="p-4 text-center"><span class="bg-red-100 text-red-800 px-2 py-1 rounded text-xs">Variable</span></td>
+                    <td class="p-4 text-center"><span class="bg-sage/20 text-sage-dark px-2 py-1 rounded text-xs font-semibold">Optimizado</span></td>
+                  </tr>
+                  <tr class="hover:bg-gray-50">
+                    <td class="p-4 font-medium">GraphRAG / Multi-hop</td>
+                    <td class="p-4 text-center"><span class="bg-sage/20 text-sage-dark px-2 py-1 rounded text-xs font-semibold">Nativo</span></td>
+                    <td class="p-4 text-center"><span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">Nativo</span></td>
+                    <td class="p-4 text-center"><span class="bg-sage/20 text-sage-dark px-2 py-1 rounded text-xs font-semibold">Integrado</span></td>
+                  </tr>
+                  <tr class="hover:bg-gray-50">
+                    <td class="p-4 font-medium">Developer Experience</td>
+                    <td class="p-4 text-center"><span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">Buena</span></td>
+                    <td class="p-4 text-center"><span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs">Media</span></td>
+                    <td class="p-4 text-center"><span class="bg-sage/20 text-sage-dark px-2 py-1 rounded text-xs font-semibold">Excelente</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Recommendation Matrix -->
+          <div class="bg-gradient-to-br from-sage/5 to-sage/10 rounded-2xl p-8 mb-16">
+            <h3 class="font-canela text-2xl font-bold mb-6 text-graphite-dark text-center">Recomendación por Escenario de Uso</h3>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div class="bg-white rounded-lg p-6 shadow-sm">
+                <div class="flex items-center gap-3 mb-4">
+                  <i class="fas fa-rocket text-sage text-xl"></i>
+                  <h4 class="font-semibold text-graphite-dark">Startup/MVP</h4>
+                </div>
+                <p class="text-sm text-graphite-light mb-3">Presupuesto limitado, validación rápida</p>
+                <div class="bg-sage/20 text-sage-dark px-3 py-1 rounded text-xs font-semibold inline-block">Mem0 cloud</div>
+              </div>
+
+              <div class="bg-white rounded-lg p-6 shadow-sm">
+                <div class="flex items-center gap-3 mb-4">
+                  <i class="fas fa-shield-alt text-graphite text-xl"></i>
+                  <h4 class="font-semibold text-graphite-dark">Organización Regulada</h4>
+                </div>
+                <p class="text-sm text-graphite-light mb-3">Finanzas, salud, defensa</p>
+                <div class="bg-graphite/20 text-graphite-dark px-3 py-1 rounded text-xs font-semibold inline-block">TrustGraph self-hosted</div>
+              </div>
+
+              <div class="bg-white rounded-lg p-6 shadow-sm">
+                <div class="flex items-center gap-3 mb-4">
+                  <i class="fas fa-database text-sage-dark text-xl"></i>
+                  <h4 class="font-semibold text-graphite-dark">CRM/ERP Histórico</h4>
+                </div>
+                <p class="text-sm text-graphite-light mb-3">Auditoría regulatoria</p>
+                <div class="bg-sage-dark/20 text-sage-dark px-3 py-1 rounded text-xs font-semibold inline-block">Graphiti</div>
+              </div>
+
+              <div class="bg-white rounded-lg p-6 shadow-sm">
+                <div class="flex items-center gap-3 mb-4">
+                  <i class="fas fa-headset text-sage-light text-xl"></i>
+                  <h4 class="font-semibold text-graphite-dark">Soporte al Cliente</h4>
+                </div>
+                <p class="text-sm text-graphite-light mb-3">Alto volumen conversacional</p>
+                <div class="bg-sage-light/20 text-sage-light px-3 py-1 rounded text-xs font-semibold inline-block">Mem0</div>
+              </div>
+
+              <div class="bg-white rounded-lg p-6 shadow-sm">
+                <div class="flex items-center gap-3 mb-4">
+                  <i class="fas fa-network-wired text-graphite-light text-xl"></i>
+                  <h4 class="font-semibold text-graphite-dark">Multi-agente</h4>
+                </div>
+                <p class="text-sm text-graphite-light mb-3">Interoperabilidad prioritaria</p>
+                <div class="bg-graphite-light/20 text-graphite-light px-3 py-1 rounded text-xs font-semibold inline-block">TrustGraph + MCP</div>
+              </div>
+
+              <div class="bg-white rounded-lg p-6 shadow-sm">
+                <div class="flex items-center gap-3 mb-4">
+                  <i class="fas fa-route text-cream-dark text-xl"></i>
+                  <h4 class="font-semibold text-graphite-dark">Prototipado Temporal</h4>
+                </div>
+                <p class="text-sm text-graphite-light mb-3">Posible migración futura</p>
+                <div class="bg-cream-dark/20 text-cream-dark px-3 py-1 rounded text-xs font-semibold inline-block">Mem0 cloud → self-hosted</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="section-divider"></div>
+
+      <!-- Implementation Section -->
+      <section id="implementation" class="px-8 py-16 bg-white">
+        <div class="max-w-6xl mx-auto">
+          <h2 class="font-canela text-3xl font-bold mb-12 text-graphite-dark text-center">Implementación de Memoria Unificada y Compartida</h2>
+
+          <!-- Centralized Architecture -->
+          <div id="architecture" class="mb-16">
+            <h3 class="font-canela text-2xl font-bold mb-8 text-graphite-dark">Patrón de Arquitectura Centralizada</h3>
+
+            <div class="grid lg:grid-cols-2 gap-8 mb-8">
+              <div>
+                <h4 class="font-canela text-xl font-bold mb-4 text-graphite-dark">Servidor de Memoria Dedicado</h4>
+
+                <div class="prose prose-lg max-w-none mb-6">
+                  <p>
+                    La arquitectura de <strong>memoria unificada y compartida</strong> requiere elevar el sistema de grafo de componente acoplado
+                    a <strong>infraestructura de plataforma centralizada</strong>. Este patrón establece que el conocimiento organizacional
+                    es un activo crítico que debe gestionarse independientemente de los consumidores que lo utilizan.
+                  </p>
+                </div>
+
+                <div class="bg-sage/5 rounded-lg p-6 mb-6">
+                  <h5 class="font-bold text-graphite-dark mb-3">Configuración Recomendada</h5>
+                  <ul class="space-y-2 text-sm">
+                    <li class="flex items-start gap-2">
+                      <i class="fas fa-sync text-sage mt-1"></i>
+                      <span><strong>Replicación síncrona</strong> para datos críticos de transacciones</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                      <i class="fas fa-globe text-sage mt-1"></i>
+                      <span><strong>Geo-distribución</strong> para latencia &lt;100ms</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                      <i class="fas fa-shield text-sage mt-1"></i>
+                      <span><strong>Infraestructura aislada</strong> para máxima resiliencia</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+                <h4 class="font-canela text-lg font-bold mb-4 text-graphite-dark">Exposición de Capacidades</h4>
+
+                <div class="space-y-4">
+                  <div class="flex items-center justify-between p-3 bg-sage/10 rounded-lg">
+                    <div>
+                      <h5 class="font-semibold text-sm">REST</h5>
+                      <p class="text-xs text-graphite-light">Scripts, aplicaciones legacy</p>
+                    </div>
+                    <div class="text-right">
+                      <div class="text-xs text-sage-dark">50-200ms</div>
+                      <div class="text-xs text-graphite-light">Mínima</div>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center justify-between p-3 bg-graphite/10 rounded-lg">
+                    <div>
+                      <h5 class="font-semibold text-sm">GraphQL</h5>
+                      <p class="text-xs text-graphite-light">Frontends ricos, análisis</p>
+                    </div>
+                    <div class="text-right">
+                      <div class="text-xs text-graphite-dark">30-150ms</div>
+                      <div class="text-xs text-graphite-light">Media</div>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center justify-between p-3 bg-sage-dark/10 rounded-lg">
+                    <div>
+                      <h5 class="font-semibold text-sm">MCP Server</h5>
+                      <p class="text-xs text-graphite-light">Agentes de IA modernos</p>
+                    </div>
+                    <div class="text-right">
+                      <div class="text-xs text-sage-dark">20-100ms</div>
+                      <div class="text-xs text-graphite-light">Mínima</div>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center justify-between p-3 bg-cream-dark/10 rounded-lg">
+                    <div>
+                      <h5 class="font-semibold text-sm">gRPC</h5>
+                      <p class="text-xs text-graphite-light">Comunicación inter-servicio</p>
+                    </div>
+                    <div class="text-right">
+                      <div class="text-xs text-cream-dark">5-20ms</div>
+                      <div class="text-xs text-graphite-light">Alta</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-gradient-to-r from-graphite/5 to-sage/5 rounded-2xl p-8">
+              <h4 class="font-canela text-xl font-bold mb-6 text-graphite-dark">Estrategia de Persistencia Políglota</h4>
+
+              <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="bg-white rounded-lg p-4 shadow-sm">
+                  <h5 class="font-semibold text-graphite-dark mb-2">Grafo Principal</h5>
+                  <p class="text-sm text-graphite-light mb-2">Memgraph o Neo4j</p>
+                  <span class="text-xs bg-sage/20 text-sage-dark px-2 py-1 rounded">Baja latencia &lt;10ms</span>
+                </div>
+
+                <div class="bg-white rounded-lg p-4 shadow-sm">
+                  <h5 class="font-semibold text-graphite-dark mb-2">Embeddings Vectoriales</h5>
+                  <p class="text-sm text-graphite-light mb-2">Qdrant o Pinecone</p>
+                  <span class="text-xs bg-graphite/20 text-graphite-dark px-2 py-1 rounded">Similitud sub-50ms</span>
+                </div>
+
+                <div class="bg-white rounded-lg p-4 shadow-sm">
+                  <h5 class="font-semibold text-graphite-dark mb-2">Metadatos</h5>
+                  <p class="text-sm text-graphite-light mb-2">PostgreSQL</p>
+                  <span class="text-xs bg-sage-dark/20 text-sage-dark px-2 py-1 rounded">ACID + JSONB</span>
+                </div>
+
+                <div class="bg-white rounded-lg p-4 shadow-sm">
+                  <h5 class="font-semibold text-graphite-dark mb-2">Cache Hot Data</h5>
+                  <p class="text-sm text-graphite-light mb-2">Redis/Valkey</p>
+                  <span class="text-xs bg-cream-dark/20 text-cream-dark px-2 py-1 rounded">Sub-milisegundo</span>
+                </div>
+
+                <div class="bg-white rounded-lg p-4 shadow-sm">
+                  <h5 class="font-semibold text-graphite-dark mb-2">Logs Auditoría</h5>
+                  <p class="text-sm text-graphite-light mb-2">ClickHouse/BigQuery</p>
+                  <span class="text-xs bg-graphite-light/20 text-graphite-light px-2 py-1 rounded">Análisis temporal</span>
+                </div>
+
+                <div class="bg-white rounded-lg p-4 shadow-sm">
+                  <h5 class="font-semibold text-graphite-dark mb-2">Configuraciones</h5>
+                  <p class="text-sm text-graphite-light mb-2">PostgreSQL</p>
+                  <span class="text-xs bg-sage/20 text-sage-dark px-2 py-1 rounded">Madurez operativa</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Integration -->
+          <div id="integration" class="mb-16">
+            <h3 class="font-canela text-2xl font-bold mb-8 text-graphite-dark">Integración Nativa con Claude Code y OpenCode</h3>
+
+            <div class="grid lg:grid-cols-2 gap-8 mb-8">
+              <div>
+                <h4 class="font-canela text-xl font-bold mb-4 text-graphite-dark">Vía MCP (Model Context Protocol)</h4>
+
+                <div class="prose prose-lg max-w-none mb-6">
+                  <p>
+                    El <strong>Model Context Protocol (MCP)</strong>, desarrollado por Anthropic y adoptado como estándar de facto,
+                    representa el <strong>mecanismo de integración más elegante y futuro-prueba</strong> para conectar sistemas de memoria
+                    con agentes de IA modernos
+                    <a href="https://neo4j.com/blog/genai/what-is-model-context-protocol-mcp/" class="citation-link">[182]</a>.
+                  </p>
+                </div>
+
+                <div class="bg-sage/10 rounded-lg p-6 mb-6">
+                  <h5 class="font-bold text-graphite-dark mb-3">Componentes MCP</h5>
+                  <div class="space-y-3">
+                    <div class="flex items-start gap-3">
+                      <i class="fas fa-desktop text-sage mt-1"></i>
+                      <div>
+                        <strong>MCP Host:</strong>
+                        <span class="text-sm text-graphite-light">Claude Desktop, Claude Code, OpenCode, Cursor</span>
+                      </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                      <i class="fas fa-plug text-sage mt-1"></i>
+                      <div>
+                        <strong>MCP Client:</strong>
+                        <span class="text-sm text-graphite-light">Conector dentro del host</span>
+                      </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                      <i class="fas fa-server text-sage mt-1"></i>
+                      <div>
+                        <strong>MCP Server:</strong>
+                        <span class="text-sm text-graphite-light">TrustGraph, Graphiti, implementaciones custom</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+                <h4 class="font-canela text-lg font-bold mb-4 text-graphite-dark">Tools MCP Expuestas</h4>
+
+                <div class="space-y-3">
+                  <div class="p-3 bg-sage/10 rounded-lg">
+                    <h5 class="font-semibold text-sage-dark text-sm">query_graph</h5>
+                    <p class="text-xs text-graphite-light">Consulta estructurada al grafo</p>
+                  </div>
+                  <div class="p-3 bg-graphite/10 rounded-lg">
+                    <h5 class="font-semibold text-graphite-dark text-sm">add_memory</h5>
+                    <p class="text-xs text-graphite-light">Ingestión de nueva información</p>
+                  </div>
+                  <div class="p-3 bg-sage-dark/10 rounded-lg">
+                    <h5 class="font-semibold text-sage-dark text-sm">search_temporal</h5>
+                    <p class="text-xs text-graphite-light">Recuperación con restricciones de tiempo</p>
+                  </div>
+                  <div class="p-3 bg-cream-dark/10 rounded-lg">
+                    <h5 class="font-semibold text-cream-dark text-sm">get_entity_relations</h5>
+                    <p class="text-xs text-graphite-light">Navegación de vecindad</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-xl p-8 border border-gray-200 shadow-sm">
+              <h4 class="font-canela text-xl font-bold mb-6 text-graphite-dark">Configuración en Claude Desktop</h4>
+
+              <div class="bg-gray-900 text-green-400 p-6 rounded-lg font-mono text-sm overflow-x-auto">
+                <pre>{
+  &#34;mcpServers&#34;: {
+    &#34;trustgraph-memory&#34;: {
+      &#34;command&#34;: &#34;docker&#34;,
+      &#34;args&#34;: [
+        &#34;run&#34;, &#34;-i&#34;, &#34;--rm&#34;,
+        &#34;-e&#34;, &#34;TRUSTGRAPH_API_KEY=tg_sk_...&#34;,
+        &#34;-e&#34;, &#34;MEMGRAPH_URI=bolt://memgraph:7687&#34;,
+        &#34;trustgraph/mcp-server:latest&#34;
+      ]
+    },
+    &#34;graphiti-memory&#34;: {
+      &#34;command&#34;: &#34;npx&#34;,
+      &#34;args&#34;: [&#34;-y&#34;, &#34;@zep/mcp-server&#34;],
+      &#34;env&#34;: {
+        &#34;ZEP_API_KEY&#34;: &#34;zep_...&#34;,
+        &#34;ZEP_PROJECT_ID&#34;: &#34;proj_...&#34;
+      }
+    }
+  }
+}</pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="section-divider"></div>
+
+      <!-- Skills System Section -->
+      <section id="skills-system" class="px-8 py-16">
+        <div class="max-w-6xl mx-auto">
+          <h2 class="font-canela text-3xl font-bold mb-12 text-graphite-dark text-center">Sistema de Skills y Comportamiento de Agentes</h2>
+
+          <!-- Skills Taxonomy -->
+          <div id="taxonomy" class="mb-16">
+            <h3 class="font-canela text-2xl font-bold mb-8 text-graphite-dark">Taxonomía de Skills para Memoria de Grafo</h3>
+
+            <div class="grid lg:grid-cols-3 gap-8 mb-8">
+              <div class="comparison-card">
+                <div class="flex items-center gap-3 mb-4">
+                  <i class="fas fa-plus-circle text-sage text-xl"></i>
+                  <h4 class="font-canela text-lg font-bold text-graphite-dark">Ingestión y Escritura</h4>
+                </div>
+                <p class="text-sm text-graphite-light mb-4">Skills que modifican el estado del grafo con controles de acceso estrictos</p>
+
+                <div class="space-y-3">
+                  <div class="border-l-4 border-sage pl-3">
+                    <h5 class="font-semibold text-sm">memory_add</h5>
+                    <p class="text-xs text-graphite-light">Almacenar nueva información con extracción automática</p>
+                  </div>
+                  <div class="border-l-4 border-sage pl-3">
+                    <h5 class="font-semibold text-sm">memory_update</h5>
+                    <p class="text-xs text-graphite-light">Modificar hechos existentes con tracking de versión</p>
+                  </div>
+                  <div class="border-l-4 border-sage pl-3">
+                    <h5 class="font-semibold text-sm">memory_link</h5>
+                    <p class="text-xs text-graphite-light">Crear relaciones explícitas con tipado semántico</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="comparison-card">
+                <div class="flex items-center gap-3 mb-4">
+                  <i class="fas fa-search text-graphite-light text-xl"></i>
+                  <h4 class="font-canela text-lg font-bold text-graphite-dark">Consulta y Recuperación</h4>
+                </div>
+                <p class="text-sm text-graphite-light mb-4">Skills para navegación estructurada y búsqueda inteligente</p>
+
+                <div class="space-y-3">
+                  <div class="border-l-4 border-graphite-light pl-3">
+                    <h5 class="font-semibold text-sm">query_graph</h5>
+                    <p class="text-xs text-graphite-light">Consultas estructuradas con Cypher o natural</p>
+                  </div>
+                  <div class="border-l-4 border-graphite-light pl-3">
+                    <h5 class="font-semibold text-sm">search_temporal</h5>
+                    <p class="text-xs text-graphite-light">Recuperación con restricciones de tiempo</p>
+                  </div>
+                  <div class="border-l-4 border-graphite-light pl-3">
+                    <h5 class="font-semibold text-sm">get_entity_relations</h5>
+                    <p class="text-xs text-graphite-light">Navegación de vecindad y conexiones</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="comparison-card">
+                <div class="flex items-center gap-3 mb-4">
+                  <i class="fas fa-cogs text-sage-dark text-xl"></i>
+                  <h4 class="font-canela text-lg font-bold text-graphite-dark">Mantenimiento y Administración</h4>
+                </div>
+                <p class="text-sm text-graphite-light mb-4">Skills para operaciones de sistema y optimización</p>
+
+                <div class="space-y-3">
+                  <div class="border-l-4 border-sage-dark pl-3">
+                    <h5 class="font-semibold text-sm">consolidate_memories</h5>
+                    <p class="text-xs text-graphite-light">Fusión de duplicados y resolución de conflictos</p>
+                  </div>
+                  <div class="border-l-4 border-sage-dark pl-3">
+                    <h5 class="font-semibold text-sm">reindex_graph</h5>
+                    <p class="text-xs text-graphite-light">Reconstrucción de índices y optimización</p>
+                  </div>
+                  <div class="border-l-4 border-sage-dark pl-3">
+                    <h5 class="font-semibold text-sm">validate_integrity</h5>
+                    <p class="text-xs text-graphite-light">Verificación de consistencia y calidad</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-gradient-to-r from-graphite/5 to-sage/5 rounded-2xl p-8">
+              <h4 class="font-canela text-xl font-bold mb-6 text-graphite-dark">Ejemplo de Implementación de Skill</h4>
+
+              <div class="grid lg:grid-cols-2 gap-8">
+                <div>
+                  <h5 class="font-semibold text-graphite-dark mb-3">Definición Declarativa (YAML)</h5>
+                  <div class="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-xs overflow-x-auto">
+                    <pre>skill: query_knowledge_graph
+version: &#34;1.2.0&#34;
+description: |
+  Consulta el grafo de conocimiento 
+  organizacional para recuperar 
+  información estructurada.
+parameters:
+  query:
+    type: string
+    required: true
+  entity_type:
+    enum: [person, organization, 
+          project, technology]
+  time_range:
+    type: object
+    properties:
+      start: { type: string, 
+               format: date-time }
+      end: { type: string, 
+             format: date-time }</pre>
+                  </div>
+                </div>
+
+                <div>
+                  <h5 class="font-semibold text-graphite-dark mb-3">Handler Python</h5>
+                  <div class="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-xs overflow-x-auto">
+                    <pre>async def handle_query_knowledge_graph(
+    params: dict, 
+    context: AgentContext
+) -&gt; dict:
+    # Validación y sanitización
+    query = sanitize(params[&#34;query&#34;])
+    time_range = validate_time_range(
+        params.get(&#34;time_range&#34;)
+    )
+    
+    # Pipeline híbrido vector + grafo
+    vector_results = await vector_search(
+        query, top_k=50
+    )
+    graph_results = await graph_traversal(
+        seed_entities=[r.id for r in vector_results[:5]],
+        depth=2
+    )
+    
+    # Re-ranking combinado
+    ranked = combine_and_rerank(
+        vector_results, graph_results, query
+    )
+    
+    return {
+        &#34;results&#34;: [format_entity(r) for r in ranked],
+        &#34;sources&#34;: [r.provenance for r in ranked],
+        &#34;confidence&#34;: calculate_aggregate_confidence(ranked)
+    }</pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Night Agent -->
+          <div id="night-agent" class="mb-16">
+            <h3 class="font-canela text-2xl font-bold mb-8 text-graphite-dark">Agente Nocturno para Mantenimiento Continuo</h3>
+
+            <div class="grid lg:grid-cols-2 gap-8 mb-8">
+              <div>
+                <div class="prose prose-lg max-w-none mb-6">
+                  <p>
+                    El <strong>agente nocturno</strong> es un componente autónomo que realiza operaciones de mantenimiento,
+                    reindexación y consolidación durante períodos de baja actividad. Este patrón asegura que el sistema de memoria
+                    permanezca óptimo sin impactar el rendimiento en horas pico.
+                  </p>
+                </div>
+
+                <div class="bg-gradient-to-br from-sage/10 to-sage/5 rounded-lg p-6 mb-6">
+                  <h4 class="font-bold text-graphite-dark mb-4">Operaciones Programadas</h4>
+                  <div class="space-y-3">
+                    <div class="flex items-start gap-3">
+                      <i class="fas fa-broom text-sage mt-1"></i>
+                      <div>
+                        <strong>Limpieza y Deduplicación:</strong>
+                        <span class="text-sm text-graphite-light">Identificación y fusión de entidades duplicadas</span>
+                      </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                      <i class="fas fa-sync-alt text-sage mt-1"></i>
+                      <div>
+                        <strong>Reindexación Estratégica:</strong>
+                        <span class="text-sm text-graphite-light">Reconstrucción de índices para optimizar consultas</span>
+                      </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                      <i class="fas fa-chart-bar text-sage mt-1"></i>
+                      <div>
+                        <strong>Análisis de Calidad:</strong>
+                        <span class="text-sm text-graphite-light">Validación de consistencia y completitud</span>
+                      </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                      <i class="fas fa-compress text-sage mt-1"></i>
+                      <div>
+                        <strong>Compresión y Archivado:</strong>
+                        <span class="text-sm text-graphite-light">Movimiento de datos fríos a almacenamiento económico</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+                <h4 class="font-canela text-lg font-bold mb-4 text-graphite-dark">Pipeline Nocturno</h4>
+
+                <div class="space-y-4">
+                  <div class="flex items-center gap-4 p-3 bg-sage/10 rounded-lg">
+                    <div class="w-8 h-8 bg-sage text-white rounded-full flex items-center justify-center text-xs font-bold">1</div>
+                    <div>
+                      <h5 class="font-semibold text-sm">Análisis de Uso</h5>
+                      <p class="text-xs text-graphite-light">Identificar patrones de acceso y hotspots</p>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center gap-4 p-3 bg-graphite/10 rounded-lg">
+                    <div class="w-8 h-8 bg-graphite text-white rounded-full flex items-center justify-center text-xs font-bold">2</div>
+                    <div>
+                      <h5 class="font-semibold text-sm">Optimización Estructural</h5>
+                      <p class="text-xs text-graphite-light">Reorganización física del grafo</p>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center gap-4 p-3 bg-sage-dark/10 rounded-lg">
+                    <div class="w-8 h-8 bg-sage-dark text-white rounded-full flex items-center justify-center text-xs font-bold">3</div>
+                    <div>
+                      <h5 class="font-semibold text-sm">Validación y Reporte</h5>
+                      <p class="text-xs text-graphite-light">Generación de métricas y alertas</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-xl p-8 border border-gray-200 shadow-sm">
+              <h4 class="font-canela text-xl font-bold mb-6 text-graphite-dark">Configuración del Agente Nocturno</h4>
+
+              <div class="grid md:grid-cols-2 gap-8">
+                <div>
+                  <h5 class="font-semibold text-graphite-dark mb-3">Programación y Disparadores</h5>
+                  <div class="space-y-3 text-sm">
+                    <div class="flex items-center gap-3">
+                      <i class="fas fa-clock text-sage"></i>
+                      <span><strong>Horario fijo:</strong> 02:00 - 06:00 local</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                      <i class="fas fa-chart-line text-sage"></i>
+                      <span><strong>Umbral de actividad:</strong> &lt;5% de carga normal</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                      <i class="fas fa-battery-full text-sage"></i>
+                      <span><strong>Batería de tareas:</strong> Máximo 4 horas de procesamiento</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                      <i class="fas fa-exclamation-triangle text-sage"></i>
+                      <span><strong>Escalación:</strong> Alertas por SLA incumplido</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h5 class="font-semibold text-graphite-dark mb-3">Monitoreo y Reporting</h5>
+                  <div class="space-y-3 text-sm">
+                    <div class="flex items-center gap-3">
+                      <i class="fas fa-file-alt text-graphite-light"></i>
+                      <span><strong>Log de operaciones:</strong> Detalle de cambios realizados</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                      <i class="fas fa-tachometer-alt text-graphite-light"></i>
+                      <span><strong>Métricas clave:</strong> Tamaño del grafo, índices, calidad</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                      <i class="fas fa-bell text-graphite-light"></i>
+                      <span><strong>Alertas proactivas:</strong> Anomalías detectadas</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                      <i class="fas fa-history text-graphite-light"></i>
+                      <span><strong>Tendencias:</strong> Evolución a largo plazo</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-6 p-4 bg-sage/10 rounded-lg">
+                <div class="insight-highlight text-sm">
+                  <i class="fas fa-robot mr-2"></i>
+                  El agente nocturno puede reducir el tamaño del grafo en un 15-30% mientras mejora el rendimiento de consultas en un 20-40%
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Footer -->
+      <footer class="px-8 py-12 bg-graphite text-white">
+        <div class="max-w-4xl mx-auto text-center">
+          <h3 class="font-canela text-2xl font-bold mb-4">Referencias y Fuentes</h3>
+          <div class="grid md:grid-cols-2 gap-6 text-left">
+            <div>
+              <h4 class="font-semibold mb-2">Documentación Principal</h4>
+              <ul class="space-y-1 text-sm text-gray-300">
+                <li>
+                  <a href="https://trustgraph.ai/guides/comparisons/trustgraph-vs-graphlit/" class="citation-link text-sage-light">[25] TrustGraph vs Graphlit Comparison</a>
+                </li>
+                <li>
+                  <a href="https://adg.csdn.net/694cf3e65b9f5f31781aa429.html" class="citation-link text-sage-light">[56] Mem0 Technical Analysis and Implementation</a>
+                </li>
+                <li>
+                  <a href="https://neo4j.com/blog/genai/what-is-model-context-protocol-mcp/" class="citation-link text-sage-light">[182] Model Context Protocol (MCP) Guide</a>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <h4 class="font-semibold mb-2">Recursos Adicionales</h4>
+              <ul class="space-y-1 text-sm text-gray-300">
+                <li>• Memgraph Performance Benchmarks</li>
+                <li>• Zep AI Enterprise Documentation</li>
+                <li>• Anthropic MCP Protocol Specification</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="mt-8 pt-8 border-t border-gray-600">
+            <p class="text-gray-400 text-sm">
+              Análisis realizado con información técnica actualizada a 2024.
+              Las recomendaciones se basan en escenarios de uso comunes y mejores prácticas de la industria.
+            </p>
+          </div>
+        </div>
+      </footer>
+    </main>
+
+    <script>
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Active TOC link highlighting
+        const observerOptions = {
+            root: null,
+            rootMargin: '-20% 0px -80% 0px',
+            threshold: 0
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    document.querySelectorAll('.toc-link').forEach(link => {
+                        link.classList.remove('active');
+                    });
+                    const activeLink = document.querySelector(`a[href="#${entry.target.id}"]`);
+                    if (activeLink) {
+                        activeLink.classList.add('active');
+                    }
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('section[id]').forEach(section => {
+            observer.observe(section);
+        });
+
+        // Mobile TOC toggle
+        const tocToggle = document.getElementById('tocToggle');
+        const tocSidebar = document.querySelector('.toc-sidebar');
+
+        if (tocToggle && tocSidebar) {
+            tocToggle.addEventListener('click', () => {
+                tocSidebar.classList.toggle('open');
+            });
+        }
+    </script>
+  
+
+</body></html>

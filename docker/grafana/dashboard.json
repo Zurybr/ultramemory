@@ -1,0 +1,8 @@
+{
+  "dashboard": {
+    "title": "Ultramemory",
+    "tags": ["ultramemory"],
+    "timezone": "browser",
+    "panels": []
+  }
+}

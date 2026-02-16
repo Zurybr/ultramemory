@@ -1,0 +1,1786 @@
+<!DOCTYPE html><html lang="es"><head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Sistema Multiagente con Memoria de Grafos: Arquitectura de Implementación</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Tiempos+Headline:wght@400;700&amp;family=Inter:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'tiempos': ['Tiempos Headline', 'serif'],
+                        'inter': ['Inter', 'sans-serif']
+                    },
+                    colors: {
+                        'stone': {
+                            50: '#fafaf9',
+                            100: '#f5f5f4',
+                            200: '#e7e5e4',
+                            300: '#d6d3d1',
+                            400: '#a8a29e',
+                            500: '#78716c',
+                            600: '#57534e',
+                            700: '#44403c',
+                            800: '#292524',
+                            900: '#1c1917'
+                        },
+                        'indigo': {
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            800: '#3730a3'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .hero-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            grid-template-rows: auto auto;
+            gap: 1.5rem;
+            align-items: start;
+        }
+        
+        .hero-title {
+            grid-column: 1 / -1;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .hero-content {
+            grid-column: 1;
+        }
+        
+        .hero-visual {
+            grid-column: 2;
+            grid-row: 2;
+        }
+        
+        .toc-fixed {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 280px;
+            height: 100vh;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border-right: 1px solid #e2e8f0;
+            overflow-y: auto;
+            z-index: 50;
+            padding: 2rem 1.5rem;
+        }
+        
+        .main-content {
+            margin-left: 280px;
+            min-height: 100vh;
+        }
+        
+        .toc-link {
+            display: block;
+            padding: 0.5rem 0;
+            color: #64748b;
+            text-decoration: none;
+            font-size: 0.875rem;
+            border-left: 2px solid transparent;
+            padding-left: 0.75rem;
+            transition: all 0.2s ease;
+        }
+        
+        .toc-link:hover {
+            color: #4f46e5;
+            border-left-color: #4f46e5;
+            background-color: rgba(79, 70, 229, 0.05);
+            padding-left: 1rem;
+        }
+        
+        .toc-link.active {
+            color: #4f46e5;
+            border-left-color: #4f46e5;
+            font-weight: 500;
+            background-color: rgba(79, 70, 229, 0.1);
+        }
+        
+        .section-divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #cbd5e1, transparent);
+            margin: 3rem 0;
+        }
+        
+        .citation-link {
+            color: #4f46e5;
+            text-decoration: none;
+            font-weight: 500;
+            border-bottom: 1px dotted #4f46e5;
+        }
+        
+        .citation-link:hover {
+            background-color: rgba(79, 70, 229, 0.1);
+            border-bottom-style: solid;
+        }
+        
+        .pull-quote {
+            border-left: 4px solid #4f46e5;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            padding: 1.5rem;
+            margin: 2rem 0;
+            font-style: italic;
+            font-size: 1.125rem;
+            color: #334155;
+        }
+        
+        @media (max-width: 1024px) {
+            .toc-fixed {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+            
+            .toc-fixed.open {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                overflow-x: hidden;
+            }
+
+            .hero-grid {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto auto;
+            }
+
+            .hero-title {
+                grid-column: 1;
+                grid-row: 1;
+            }
+
+            .hero-content {
+                grid-column: 1;
+                grid-row: 2;
+            }
+
+            .hero-visual {
+                grid-column: 1;
+                grid-row: 3;
+            }
+
+            .hero-title h1 {
+                font-size: 2.25rem;
+            }
+
+            .hero-visual img {
+                height: auto;
+            }
+
+            .px-8 {
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+        }
+    </style>
+  <base target="_blank">
+</head>
+
+  <body class="bg-stone-50 text-stone-900 font-inter">
+    <!-- Mobile Toggle Button -->
+    <button id="toc-toggle" class="fixed top-4 left-4 z-50 lg:hidden bg-indigo-600 text-white p-2 rounded-lg shadow-lg">
+      <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Fixed Table of Contents -->
+    <nav class="toc-fixed">
+      <div class="mb-8">
+        <h3 class="font-tiempos text-lg font-bold text-stone-800 mb-4">Índice de Contenidos</h3>
+      </div>
+
+      <div class="space-y-1">
+        <a href="#executive-summary" class="toc-link">Resumen Ejecutivo</a>
+        <a href="#architecture-foundations" class="toc-link">1. Fundamentos de Arquitectura</a>
+        <a href="#specialized-agents" class="toc-link text-xs ml-4">1.1 Modelo de Agentes Especializados</a>
+        <a href="#frameworks-evaluated" class="toc-link text-xs ml-4">1.2 Frameworks Evaluados</a>
+        <a href="#persistence-layer" class="toc-link">2. Capa de Persistencia</a>
+        <a href="#graph-options" class="toc-link text-xs ml-4">2.1 Opciones de Motor de Grafo</a>
+        <a href="#knowledge-modeling" class="toc-link text-xs ml-4">2.2 Modelado del Grafo</a>
+        <a href="#agents-implementation" class="toc-link">3. Implementación de Agentes</a>
+        <a href="#librarian-agent" class="toc-link text-xs ml-4">3.1 Agente Bibliotecario</a>
+        <a href="#researcher-agent" class="toc-link text-xs ml-4">3.2 Agente Investigador</a>
+        <a href="#organizer-agent" class="toc-link text-xs ml-4">3.3 Agente Organizador</a>
+        <a href="#cli-interface" class="toc-link">4. Interfaz de Línea de Comandos</a>
+        <a href="#system-control" class="toc-link text-xs ml-4">4.1 Comandos de Control</a>
+        <a href="#query-commands" class="toc-link text-xs ml-4">4.2 Comandos de Consulta</a>
+        <a href="#external-apis" class="toc-link">5. Conectividad y APIs</a>
+        <a href="#service-interfaces" class="toc-link text-xs ml-4">5.1 Interfaces de Servicio</a>
+        <a href="#native-integrations" class="toc-link text-xs ml-4">5.2 Integraciones Nativas</a>
+        <a href="#self-hosted-deployment" class="toc-link">6. Despliegue Self-Hosted</a>
+        <a href="#containerized-infra" class="toc-link text-xs ml-4">6.1 Infraestructura Contenerizada</a>
+        <a href="#security-considerations" class="toc-link text-xs ml-4">6.2 Consideraciones de Seguridad</a>
+        <a href="#code-organization" class="toc-link">7. Organización del Código</a>
+        <a href="#project-structure" class="toc-link text-xs ml-4">7.1 Estructura de Proyecto</a>
+        <a href="#testing-quality" class="toc-link text-xs ml-4">7.2 Testing y Calidad</a>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Hero Section -->
+      <header class="relative bg-gradient-to-br from-stone-100 to-stone-200 overflow-hidden">
+        <div class="max-w-7xl mx-auto px-8 py-16">
+          <div class="hero-grid">
+            <div class="hero-title">
+              <h1 class="font-tiempos text-5xl lg:text-6xl font-bold text-stone-900 leading-tight mb-6">
+                <span class="italic text-indigo-700">Sistema Multiagente</span>
+                <br/>
+                con Memoria de Grafos
+              </h1>
+              <p class="text-xl text-stone-600 max-w-3xl leading-relaxed">
+                Arquitectura de implementación para un sistema de conocimiento
+                distribuido con agentes especializados, persistencia en grafos
+                y operación autónoma
+              </p>
+            </div>
+
+            <div class="hero-content">
+              <div class="bg-white/70 backdrop-blur-sm rounded-lg p-6 border border-stone-300">
+                <h3 class="font-tiempos text-lg font-bold mb-3 text-stone-800">Arquitectura Principal</h3>
+                <ul class="space-y-2 text-stone-600">
+                  <li class="flex items-center"><i class="fas fa-network-wired text-indigo-600 mr-2"></i>LangGraph para orquestación</li>
+                  <li class="flex items-center"><i class="fas fa-database text-indigo-600 mr-2"></i>FalkorDB/Neo4j como motor</li>
+                  <li class="flex items-center"><i class="fas fa-robot text-indigo-600 mr-2"></i>Tres agentes especializados</li>
+                  <li class="flex items-center"><i class="fas fa-terminal text-indigo-600 mr-2"></i>CLI en Typer para control</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="hero-visual">
+              <img src="https://kimi-web-img.moonshot.cn/img/anderfernandez.com/26cef352a8db50e23b910ef7c6ea09aa75781299.png" alt="Sistema multiagente conectado a base de datos grafos" class="w-full h-64 object-cover rounded-lg shadow-lg" size="medium" aspect="wide" style="photo" query="sistema multiagente conectado a base de datos grafos" referrerpolicy="no-referrer" data-modified="1" data-score="0.00"/>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Executive Summary -->
+      <section id="executive-summary" class="max-w-7xl mx-auto px-8 py-12">
+        <div class="bg-white rounded-xl shadow-sm border border-stone-200 p-8">
+          <h2 class="font-tiempos text-3xl font-bold text-stone-900 mb-6">Resumen Ejecutivo</h2>
+
+          <div class="grid md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-gradient-to-br from-indigo-50 to-blue-50 p-6 rounded-lg">
+              <i class="fas fa-brain text-indigo-600 text-2xl mb-3"></i>
+              <h4 class="font-semibold text-stone-800 mb-2">Agentes Especializados</h4>
+              <p class="text-stone-600 text-sm">Tres agentes autónomos con roles distintos: ingesta, consulta y mantenimiento nocturno</p>
+            </div>
+            <div class="bg-gradient-to-br from-emerald-50 to-green-50 p-6 rounded-lg">
+              <i class="fas fa-project-diagram text-emerald-600 text-2xl mb-3"></i>
+              <h4 class="font-semibold text-stone-800 mb-2">Memoria de Grafos</h4>
+              <p class="text-stone-600 text-sm">Persistencia en FalkorDB o Neo4j con indexación vectorial integrada</p>
+            </div>
+            <div class="bg-gradient-to-br from-amber-50 to-orange-50 p-6 rounded-lg">
+              <i class="fas fa-cogs text-amber-600 text-2xl mb-3"></i>
+              <h4 class="font-semibold text-stone-800 mb-2">Operación Autónoma</h4>
+              <p class="text-stone-600 text-sm">Mantenimiento proactivo durante horas de baja demanda con CLI en Typer</p>
+            </div>
+          </div>
+
+          <div class="prose prose-stone max-w-none">
+            <p class="text-lg leading-relaxed text-stone-700">
+              Para implementar un sistema multiagente con memoria de grafos self-hosted, se propone utilizar
+              <strong class="text-indigo-700">LangGraph</strong> para orquestar tres agentes especializados
+              (Bibliotecario para ingesta, Investigador para consulta, Organizador Nocturno para mantenimiento)
+              sobre <strong class="text-indigo-700">FalkorDB</strong> o <strong class="text-indigo-700">Neo4j</strong>
+              como motor de grafo, con CLI en Typer para control operativo y APIs REST/WebSocket para conectividad externa.
+            </p>
+
+            <p class="text-stone-600 leading-relaxed">
+              La arquitectura prioriza la separación de responsabilidades, la trazabilidad temporal del conocimiento
+              y la operación autónoma de mantenimiento durante horas de baja demanda. La investigación demuestra que
+              la especialización de agentes puede mejorar la precisión hasta
+              <a href="https://dasroot.net/posts/2026/02/multi-agent-multi-llm-systems-future-ai-architecture-guide-2026/" class="citation-link" target="_blank">89.4% en benchmarks como MMLU-Pro</a>
+              comparado con configuraciones no especializadas.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <div class="section-divider max-w-7xl mx-auto px-8"></div>
+
+      <!-- Architecture Foundations -->
+      <section id="architecture-foundations" class="max-w-7xl mx-auto px-8 py-12">
+        <h2 class="font-tiempos text-4xl font-bold text-stone-900 mb-8">1. Fundamentos de la Arquitectura Multiagente</h2>
+
+        <!-- Specialized Agents Model -->
+        <div id="specialized-agents" class="mb-12">
+          <h3 class="font-tiempos text-2xl font-bold text-stone-800 mb-6">1.1 Modelo de Agentes Especializados</h3>
+
+          <div class="grid lg:grid-cols-2 gap-8 mb-8">
+            <div>
+              <h4 class="font-semibold text-lg text-stone-800 mb-4">Agente Bibliotecario</h4>
+              <div class="bg-stone-50 p-6 rounded-lg">
+                <p class="text-stone-600 mb-4">
+                  Punto de entrada para nuevo conocimiento. Procesa múltiples formatos:
+                  documentos estructurados, código fuente, logs de conversación, datos tabulares.
+                </p>
+                <ul class="text-sm text-stone-600 space-y-1">
+                  <li>• Pipelines de extracción y segmentación semántica</li>
+                  <li>• Generación de embeddings</li>
+                  <li>• Inserción transaccional con validación</li>
+                </ul>
+              </div>
+            </div>
+
+            <div>
+              <h4 class="font-semibold text-lg text-stone-800 mb-4">Agente Investigador</h4>
+              <div class="bg-stone-50 p-6 rounded-lg">
+                <p class="text-stone-600 mb-4">
+                  Interfaz de consulta que navega activamente por relaciones del grafo,
+                  identifica patrones y genera respuestas fundamentadas.
+                </p>
+                <ul class="text-sm text-stone-600 space-y-1">
+                  <li>• Búsqueda semántica y navegación Cypher</li>
+                  <li>• RAG híbrido con reranking</li>
+                  <li>• Citas verificables a fuentes originales</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-8">
+            <h4 class="font-semibold text-lg text-stone-800 mb-4">Agente Organizador Nocturno</h4>
+            <div class="bg-gradient-to-r from-stone-100 to-stone-50 p-6 rounded-lg">
+              <p class="text-stone-600 mb-4">
+                Componente de mantenimiento proactivo que opera durante períodos de baja demanda.
+                Implementa el patrón de &#34;mantenimiento nocturno&#34; común en sistemas empresariales.
+              </p>
+              <div class="grid md:grid-cols-3 gap-4 mt-4">
+                <div class="text-center">
+                  <i class="fas fa-compress-arrows-alt text-indigo-600 text-xl mb-2"></i>
+                  <p class="text-sm text-stone-600">Fusión de fragmentos redundantes</p>
+                </div>
+                <div class="text-center">
+                  <i class="fas fa-sync-alt text-indigo-600 text-xl mb-2"></i>
+                  <p class="text-sm text-stone-600">Actualización de embeddings</p>
+                </div>
+                <div class="text-center">
+                  <i class="fas fa-chart-line text-indigo-600 text-xl mb-2"></i>
+                  <p class="text-sm text-stone-600">Recomputación de métricas</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white border border-stone-200 rounded-lg p-6">
+            <h5 class="font-semibold text-stone-800 mb-4">Patrones de Interacción</h5>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead class="bg-stone-50">
+                  <tr>
+                    <th class="text-left p-3 font-semibold">Patrón</th>
+                    <th class="text-left p-3 font-semibold">Ventajas</th>
+                    <th class="text-left p-3 font-semibold">Desventajas</th>
+                    <th class="text-left p-3 font-semibold">Uso Óptimo</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-stone-200">
+                  <tr>
+                    <td class="p-3 font-medium">Grafo de Estado Dirigido</td>
+                    <td class="p-3 text-stone-600">Trazabilidad completa, visualización</td>
+                    <td class="p-3 text-stone-600">Menos flexible para flujos emergentes</td>
+                    <td class="p-3 text-stone-600">Flujos predecibles con pasos definidos</td>
+                  </tr>
+                  <tr>
+                    <td class="p-3 font-medium">Supervisión Centralizada</td>
+                    <td class="p-3 text-stone-600">Control explícito, políticas globales</td>
+                    <td class="p-3 text-stone-600">Punto único de fallo, latencia adicional</td>
+                    <td class="p-3 text-stone-600">Sistemas con gobernanza estricta</td>
+                  </tr>
+                  <tr>
+                    <td class="p-3 font-medium">Coordinación Peer-to-Peer</td>
+                    <td class="p-3 text-stone-600">Máxima flexibilidad, escalabilidad</td>
+                    <td class="p-3 text-stone-600">Complejidad en resolución de conflictos</td>
+                    <td class="p-3 text-stone-600">Exploración colaborativa</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Frameworks Evaluated -->
+        <div id="frameworks-evaluated" class="mb-12">
+          <h3 class="font-tiempos text-2xl font-bold text-stone-800 mb-6">1.2 Frameworks de Implementación Evaluados</h3>
+
+          <div class="space-y-8">
+            <div class="bg-gradient-to-br from-indigo-50 to-blue-50 p-8 rounded-xl">
+              <div class="flex items-start space-x-4">
+                <div class="bg-indigo-600 text-white p-3 rounded-lg">
+                  <i class="fas fa-sitemap text-xl"></i>
+                </div>
+                <div class="flex-1">
+                  <h4 class="font-tiempos text-xl font-bold text-stone-800 mb-3">LangGraph (LangChain)</h4>
+                  <p class="text-stone-600 mb-4">
+                    Framework de referencia para orquestación de agentes en el ecosistema LangChain.
+                    Representa cada agente como nodo en un grafo de estado dirigido con transiciones condicionales.
+                  </p>
+                  <div class="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <h5 class="font-semibold text-stone-700 mb-2">Características Clave:</h5>
+                      <ul class="text-sm text-stone-600 space-y-1">
+                        <li>• Estados compartidos con TypedDict y reductores</li>
+                        <li>• Edges condicionales para flujos complejos</li>
+                        <li>• Observabilidad con LangSmith</li>
+                        <li>• &#34;Viaje en el tiempo&#34; para debugging</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h5 class="font-semibold text-stone-700 mb-2">Ventajas:</h5>
+                      <ul class="text-sm text-stone-600 space-y-1">
+                        <li>• Ejecución determinista y observable</li>
+                        <li>• Integración nativa con LangChain</li>
+                        <li>• Patrones avanzados como reflexión</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-gradient-to-br from-emerald-50 to-green-50 p-8 rounded-xl">
+              <div class="flex items-start space-x-4">
+                <div class="bg-emerald-600 text-white p-3 rounded-lg">
+                  <i class="fas fa-comments text-xl"></i>
+                </div>
+                <div class="flex-1">
+                  <h4 class="font-tiempos text-xl font-bold text-stone-800 mb-3">AutoGen (AG2)</h4>
+                  <p class="text-stone-600 mb-4">
+                    Paradigma conversacional con system messages especializados. Cada agente se define
+                    con un perfil de rol detallado que guía su comportamiento en interacciones multi-turno.
+                  </p>
+                  <div class="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <h5 class="font-semibold text-stone-700 mb-2">Componentes:</h5>
+                      <ul class="text-sm text-stone-600 space-y-1">
+                        <li>• GroupChat para conversaciones múltiples</li>
+                        <li>• GroupChatManager para coordinación</li>
+                        <li>• Herramientas extensibles con docstrings</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h5 class="font-semibold text-stone-700 mb-2">Casos de Uso:</h5>
+                      <ul class="text-sm text-stone-600 space-y-1">
+                        <li>• Brainstorming colaborativo</li>
+                        <li>• Revisión cruzada de documentos</li>
+                        <li>• Síntesis colaborativa</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-gradient-to-br from-amber-50 to-orange-50 p-8 rounded-xl">
+              <div class="flex items-start space-x-4">
+                <div class="bg-amber-600 text-white p-3 rounded-lg">
+                  <i class="fas fa-clock text-xl"></i>
+                </div>
+                <div class="flex-1">
+                  <h4 class="font-tiempos text-xl font-bold text-stone-800 mb-3">Graphiti + FalkorDB</h4>
+                  <p class="text-stone-600 mb-4">
+                    Aproximación especializada para sistemas donde el tiempo y la evolución del conocimiento
+                    son dimensiones críticas. Graphiti construye grafos de conocimiento temporales.
+                  </p>
+                  <div class="bg-white p-4 rounded-lg">
+                    <code class="text-sm text-stone-700">
+                                        <pre># Ejemplo de integración
+graphiti = Graphiti(falkor_db)
+episode_id = await graphiti.add_episode(
+    name=&#34;quarterly_report_q3_2024&#34;,
+    episode_body=report_text,
+    reference_time=datetime(2024, 10, 15)
+)</pre>
+                                    </code>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="section-divider max-w-7xl mx-auto px-8"></div>
+
+      <!-- Persistence Layer -->
+      <section id="persistence-layer" class="max-w-7xl mx-auto px-8 py-12">
+        <h2 class="font-tiempos text-4xl font-bold text-stone-900 mb-8">2. Capa de Persistencia: Base de Datos de Grafos</h2>
+
+        <!-- Graph Database Options -->
+        <div id="graph-options" class="mb-12">
+          <h3 class="font-tiempos text-2xl font-bold text-stone-800 mb-6">2.1 Opciones de Motor de Grafo</h3>
+
+          <div class="grid lg:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white border border-stone-200 rounded-lg p-6">
+              <div class="flex items-center mb-4">
+                <div class="bg-indigo-100 p-2 rounded-lg mr-3">
+                  <i class="fas fa-database text-indigo-600"></i>
+                </div>
+                <h4 class="font-semibold text-stone-800">FalkorDB</h4>
+              </div>
+              <p class="text-sm text-stone-600 mb-4">
+                Diseñado para cargas de trabajo de IA con protocolo Redis,
+                motor de búsqueda vectorial integrado y API de QA.
+              </p>
+              <div class="space-y-2">
+                <div class="text-xs text-stone-500">
+                  <i class="fas fa-check text-green-500 mr-1"></i>
+                  Compatibilidad Redis
+                </div>
+                <div class="text-xs text-stone-500">
+                  <i class="fas fa-check text-green-500 mr-1"></i>
+                  Búsqueda vectorial nativa
+                </div>
+                <div class="text-xs text-stone-500">
+                  <i class="fas fa-check text-green-500 mr-1"></i>
+                  Soporte multi-tenant
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white border border-stone-200 rounded-lg p-6">
+              <div class="flex items-center mb-4">
+                <div class="bg-emerald-100 p-2 rounded-lg mr-3">
+                  <i class="fas fa-tachometer-alt text-emerald-600"></i>
+                </div>
+                <h4 class="font-semibold text-stone-800">Memgraph</h4>
+              </div>
+              <p class="text-sm text-stone-600 mb-4">
+                Alto rendimiento con arquitectura in-memory,
+                compatibilidad Cypher y optimización para análisis en tiempo real.
+              </p>
+              <div class="space-y-2">
+                <div class="text-xs text-stone-500">
+                  <i class="fas fa-check text-green-500 mr-1"></i>
+                  Latencias ultra bajas
+                </div>
+                <div class="text-xs text-stone-500">
+                  <i class="fas fa-check text-green-500 mr-1"></i>
+                  Estándar Cypher
+                </div>
+                <div class="text-xs text-stone-500">
+                  <i class="fas fa-check text-green-500 mr-1"></i>
+                  Integración LangChain oficial
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white border border-stone-200 rounded-lg p-6">
+              <div class="flex items-center mb-4">
+                <div class="bg-amber-100 p-2 rounded-lg mr-3">
+                  <i class="fas fa-building text-amber-600"></i>
+                </div>
+                <h4 class="font-semibold text-stone-800">Neo4j</h4>
+              </div>
+              <p class="text-sm text-stone-600 mb-4">
+                Opción más madura del mercado con ecosistema
+                extenso, replicación nativa y Aura Agent.
+              </p>
+              <div class="space-y-2">
+                <div class="text-xs text-stone-500">
+                  <i class="fas fa-check text-green-500 mr-1"></i>
+                  Máxima confianza empresarial
+                </div>
+                <div class="text-xs text-stone-500">
+                  <i class="fas fa-check text-green-500 mr-1"></i>
+                  Ecosistema más amplio
+                </div>
+                <div class="text-xs text-stone-500">
+                  <i class="fas fa-check text-green-500 mr-1"></i>
+                  Backup en caliente
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="pull-quote">
+            &#34;La decisión entre estos motores debe considerar trade-offs de rendimiento, madurez operacional,
+            y alineación con el stack tecnológico existente. FalkorDB ofrece la integración más estrecha
+            con patrones de desarrollo modernos de IA.&#34;
+          </div>
+        </div>
+
+        <!-- Knowledge Modeling -->
+        <div id="knowledge-modeling" class="mb-12">
+          <h3 class="font-tiempos text-2xl font-bold text-stone-800 mb-6">2.2 Modelado del Grafo de Conocimiento</h3>
+
+          <div class="grid lg:grid-cols-2 gap-8 mb-8">
+            <div>
+              <h4 class="font-semibold text-lg text-stone-800 mb-4">Esquema de Entidades</h4>
+              <div class="bg-stone-50 p-6 rounded-lg">
+                <div class="space-y-4">
+                  <div class="border-l-4 border-indigo-500 pl-4">
+                    <h5 class="font-medium text-stone-700">Documento</h5>
+                    <p class="text-sm text-stone-600">Unidad de ingesta original con metadatos de fuente</p>
+                  </div>
+                  <div class="border-l-4 border-emerald-500 pl-4">
+                    <h5 class="font-medium text-stone-700">Fragmento</h5>
+                    <p class="text-sm text-stone-600">Subdivisión semántica procesable con embeddings</p>
+                  </div>
+                  <div class="border-l-4 border-amber-500 pl-4">
+                    <h5 class="font-medium text-stone-700">Concepto</h5>
+                    <p class="text-sm text-stone-600">Entidad abstracta extraída para navegación estructural</p>
+                  </div>
+                  <div class="border-l-4 border-rose-500 pl-4">
+                    <h5 class="font-medium text-stone-700">Entidad Nombrada</h5>
+                    <p class="text-sm text-stone-600">Instancia específica con identidad y desambiguación</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h4 class="font-semibold text-lg text-stone-800 mb-4">Relaciones y Propiedades</h4>
+              <div class="bg-white border border-stone-200 p-6 rounded-lg">
+                <div class="space-y-3">
+                  <div class="flex justify-between items-center py-2 border-b border-stone-100">
+                    <span class="font-medium text-stone-700">CONTIENE</span>
+                    <span class="text-xs bg-stone-100 px-2 py-1 rounded">Documento → Fragmento</span>
+                  </div>
+                  <div class="flex justify-between items-center py-2 border-b border-stone-100">
+                    <span class="font-medium text-stone-700">REFERENCIA</span>
+                    <span class="text-xs bg-stone-100 px-2 py-1 rounded">Fragmento → Fragmento</span>
+                  </div>
+                  <div class="flex justify-between items-center py-2 border-b border-stone-100">
+                    <span class="font-medium text-stone-700">DERIVA_DE</span>
+                    <span class="text-xs bg-stone-100 px-2 py-1 rounded">Fragmento → Fragmento</span>
+                  </div>
+                  <div class="flex justify-between items-center py-2">
+                    <span class="font-medium text-stone-700">RELACIONADO_CON</span>
+                    <span class="text-xs bg-stone-100 px-2 py-1 rounded">Concepto → Concepto</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-4 bg-indigo-50 p-4 rounded-lg">
+                <h5 class="font-medium text-indigo-800 mb-2">Propiedades Temporales</h5>
+                <p class="text-sm text-indigo-700">
+                  Timestamps de creación y modificación para trazabilidad de versiones
+                  y reconstrucción histórica del grafo.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-8 rounded-xl">
+            <h4 class="font-semibold text-lg text-stone-800 mb-4">Indexación Vectorial</h4>
+            <div class="grid md:grid-cols-3 gap-6">
+              <div class="bg-white p-4 rounded-lg">
+                <h5 class="font-medium text-stone-700 mb-2">Fragmento Único</h5>
+                <p class="text-sm text-stone-600 mb-2">Un embedding por fragmento de texto</p>
+                <div class="text-xs text-stone-500">
+                  <i class="fas fa-star text-yellow-500 mr-1"></i>
+                  Simplicidad, especificidad máxima
+                </div>
+              </div>
+              <div class="bg-white p-4 rounded-lg">
+                <h5 class="font-medium text-stone-700 mb-2">Jerárquica Dual</h5>
+                <p class="text-sm text-stone-600 mb-2">Embeddings a nivel de fragmento y documento</p>
+                <div class="text-xs text-stone-500">
+                  <i class="fas fa-balance-scale text-blue-500 mr-1"></i>
+                  Balance de especificidad y cobertura
+                </div>
+              </div>
+              <div class="bg-white p-4 rounded-lg">
+                <h5 class="font-medium text-stone-700 mb-2">Multi-representación</h5>
+                <p class="text-sm text-stone-600 mb-2">Contenido, título, y resumen</p>
+                <div class="text-xs text-stone-500">
+                  <i class="fas fa-shield-alt text-green-500 mr-1"></i>
+                  Robustez a diversidad de consultas
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="section-divider max-w-7xl mx-auto px-8"></div>
+
+      <!-- Agents Implementation -->
+      <section id="agents-implementation" class="max-w-7xl mx-auto px-8 py-12">
+        <h2 class="font-tiempos text-4xl font-bold text-stone-900 mb-8">3. Implementación de Agentes Especializados</h2>
+
+        <!-- Librarian Agent -->
+        <div id="librarian-agent" class="mb-12">
+          <h3 class="font-tiempos text-2xl font-bold text-stone-800 mb-6">3.1 Agente Bibliotecario (Ingesta)</h3>
+
+          <div class="grid lg:grid-cols-2 gap-8 mb-8">
+            <div>
+              <h4 class="font-semibold text-lg text-stone-800 mb-4">Fuentes de Datos Soportadas</h4>
+              <div class="space-y-4">
+                <div class="bg-stone-50 p-4 rounded-lg">
+                  <h5 class="font-medium text-stone-700 mb-2">Documentos Estructurados</h5>
+                  <p class="text-sm text-stone-600 mb-2">PDF, DOCX, ODT, RTF</p>
+                  <p class="text-xs text-stone-500">Preservación de layout, extracción de metadatos</p>
+                </div>
+                <div class="bg-stone-50 p-4 rounded-lg">
+                  <h5 class="font-medium text-stone-700 mb-2">Código Fuente</h5>
+                  <p class="text-sm text-stone-600 mb-2">Python, JS/TS, Java, Go, Rust</p>
+                  <p class="text-xs text-stone-500">Análisis AST, relaciones de dependencia</p>
+                </div>
+                <div class="bg-stone-50 p-4 rounded-lg">
+                  <h5 class="font-medium text-stone-700 mb-2">Conversaciones</h5>
+                  <p class="text-sm text-stone-600 mb-2">Slack, Discord, Teams, VTT</p>
+                  <p class="text-xs text-stone-500">Diarización, threading, reacciones</p>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h4 class="font-semibold text-lg text-stone-800 mb-4">Pipeline de Procesamiento</h4>
+              <div class="bg-white border border-stone-200 rounded-lg p-6">
+                <div class="space-y-4">
+                  <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
+                      <span class="text-xs font-bold text-indigo-600">1</span>
+                    </div>
+                    <div>
+                      <h5 class="font-medium text-stone-700">Extracción</h5>
+                      <p class="text-xs text-stone-500">Obtener texto y metadatos</p>
+                    </div>
+                  </div>
+                  <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center">
+                      <span class="text-xs font-bold text-emerald-600">2</span>
+                    </div>
+                    <div>
+                      <h5 class="font-medium text-stone-700">Limpieza</h5>
+                      <p class="text-xs text-stone-500">Normalización Unicode</p>
+                    </div>
+                  </div>
+                  <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
+                      <span class="text-xs font-bold text-amber-600">3</span>
+                    </div>
+                    <div>
+                      <h5 class="font-medium text-stone-700">Segmentación</h5>
+                      <p class="text-xs text-stone-500">División semántica con superposición</p>
+                    </div>
+                  </div>
+                  <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-rose-100 rounded-full flex items-center justify-center">
+                      <span class="text-xs font-bold text-rose-600">4</span>
+                    </div>
+                    <div>
+                      <h5 class="font-medium text-stone-700">Enriquecimiento</h5>
+                      <p class="text-xs text-stone-500">Embeddings y resúmenes</p>
+                    </div>
+                  </div>
+                  <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                      <span class="text-xs font-bold text-purple-600">5</span>
+                    </div>
+                    <div>
+                      <h5 class="font-medium text-stone-700">Validación</h5>
+                      <p class="text-xs text-stone-500">Verificación de esquema</p>
+                    </div>
+                  </div>
+                  <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                      <span class="text-xs font-bold text-blue-600">6</span>
+                    </div>
+                    <div>
+                      <h5 class="font-medium text-stone-700">Inserción</h5>
+                      <p class="text-xs text-stone-500">Escritura transaccional</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-gradient-to-r from-purple-50 to-pink-50 p-8 rounded-xl">
+            <h4 class="font-semibold text-lg text-stone-800 mb-4">Integración con Graphiti</h4>
+            <p class="text-stone-600 mb-4">
+              Para sistemas donde la temporalidad del conocimiento es crítica,
+              Graphiti proporciona construcción automática de relaciones temporales.
+            </p>
+            <div class="bg-white p-4 rounded-lg">
+              <code class="text-sm text-stone-700">
+                            <pre># Registro de episodio con contexto temporal
+episode_id = await graphiti.add_episode(
+    name=&#34;quarterly_report_q3_2024&#34;,
+    episode_body=report_text,
+    reference_time=datetime(2024, 10, 15),
+    source=EpisodeSource.DOCUMENT
+)</pre>
+                        </code>
+            </div>
+          </div>
+        </div>
+
+        <!-- Researcher Agent -->
+        <div id="researcher-agent" class="mb-12">
+          <h3 class="font-tiempos text-2xl font-bold text-stone-800 mb-6">3.2 Agente Investigador (Consulta)</h3>
+
+          <div class="grid lg:grid-cols-2 gap-8 mb-8">
+            <div>
+              <h4 class="font-semibold text-lg text-stone-800 mb-4">Modos de Búsqueda</h4>
+              <div class="space-y-4">
+                <div class="bg-indigo-50 p-4 rounded-lg">
+                  <div class="flex justify-between items-center mb-2">
+                    <h5 class="font-medium text-indigo-800">Vector Directo</h5>
+                    <span class="text-xs bg-indigo-200 text-indigo-800 px-2 py-1 rounded">50-200ms</span>
+                  </div>
+                  <p class="text-sm text-indigo-700 mb-2">Similitud coseno en índice ANN</p>
+                  <p class="text-xs text-indigo-600">Consultas conceptuales abiertas</p>
+                </div>
+
+                <div class="bg-emerald-50 p-4 rounded-lg">
+                  <div class="flex justify-between items-center mb-2">
+                    <h5 class="font-medium text-emerald-800">Cypher Estructurado</h5>
+                    <span class="text-xs bg-emerald-200 text-emerald-800 px-2 py-1 rounded">100-500ms</span>
+                  </div>
+                  <p class="text-sm text-emerald-700 mb-2">Navegación de grafo con joins</p>
+                  <p class="text-xs text-emerald-600">Consultas precisas sobre relaciones</p>
+                </div>
+
+                <div class="bg-amber-50 p-4 rounded-lg">
+                  <div class="flex justify-between items-center mb-2">
+                    <h5 class="font-medium text-amber-800">RAG Híbrido</h5>
+                    <span class="text-xs bg-amber-200 text-amber-800 px-2 py-1 rounded">500ms-2s</span>
+                  </div>
+                  <p class="text-sm text-amber-700 mb-2">Vector seed + expansión grafo</p>
+                  <p class="text-xs text-amber-600">Consultas complejas con contexto amplio</p>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h4 class="font-semibold text-lg text-stone-800 mb-4">Síntesis de Respuestas</h4>
+              <div class="bg-white border border-stone-200 p-6 rounded-lg">
+                <div class="space-y-4">
+                  <div>
+                    <h5 class="font-medium text-stone-700 mb-2">Agregación de Fuentes</h5>
+                    <p class="text-sm text-stone-600 mb-2">
+                      Manejo de redundancia y conflicto entre múltiples fragmentos.
+                      Reconoce convergencia y presenta contradicciones con fuentes.
+                    </p>
+                  </div>
+
+                  <div>
+                    <h5 class="font-medium text-stone-700 mb-2">Citación Verificable</h5>
+                    <p class="text-sm text-stone-600 mb-2">
+                      Identificadores de nodo para verificación directa en el grafo.
+                      Enlaces clicables al contexto original.
+                    </p>
+                  </div>
+
+                  <div>
+                    <h5 class="font-medium text-stone-700 mb-2">Confianza Calibrada</h5>
+                    <div class="space-y-2">
+                      <div class="flex justify-between text-sm">
+                        <span class="text-stone-600">Similitud de recuperación</span>
+                        <span class="text-stone-500">Captura de consulta</span>
+                      </div>
+                      <div class="flex justify-between text-sm">
+                        <span class="text-stone-600">Recencia de fuentes</span>
+                        <span class="text-stone-500">Riesgo de obsolescencia</span>
+                      </div>
+                      <div class="flex justify-between text-sm">
+                        <span class="text-stone-600">Consistencia inter-fuente</span>
+                        <span class="text-stone-500">Fiabilidad de consenso</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-8 rounded-xl">
+            <h4 class="font-semibold text-lg text-stone-800 mb-4">Capacidades de FalkorGraphRag</h4>
+            <p class="text-stone-600 mb-4">
+              Integración específica con FalkorDB que acelera desarrollo con abstracciones de alto nivel.
+            </p>
+            <div class="bg-white p-6 rounded-lg">
+              <code class="text-sm text-stone-700">
+                            <pre># Configuración del motor de consultas
+query_engine = FalkorGraphQueryEngine(
+    name=&#34;knowledge_base&#34;,
+    host=&#34;localhost&#34;,
+    port=6379,
+    username=&#34;falkor&#34;,
+    password=&#34;password&#34;,
+)
+
+# Equipar agente investigador
+FalkorGraphRagCapability.attach(researcher, query_engine)</pre>
+                        </code>
+            </div>
+            <p class="text-sm text-stone-600 mt-4">
+              <a href="https://docs.falkordb.com/genai-tools/ag2.html" class="citation-link" target="_blank">
+                Documentación de FalkorGraphRag
+              </a>
+              - Consultas en lenguaje natural traducidas a operaciones de grafo con memoria contextual.
+            </p>
+          </div>
+        </div>
+
+        <!-- Organizer Agent -->
+        <div id="organizer-agent" class="mb-12">
+          <h3 class="font-tiempos text-2xl font-bold text-stone-800 mb-6">3.3 Agente Organizador Nocturno (Mantenimiento)</h3>
+
+          <div class="mb-8">
+            <h4 class="font-semibold text-lg text-stone-800 mb-4">Tareas Programadas</h4>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead class="bg-stone-50">
+                  <tr>
+                    <th class="text-left p-3 font-semibold">Tarea</th>
+                    <th class="text-left p-3 font-semibold">Frecuencia</th>
+                    <th class="text-left p-3 font-semibold">Trigger</th>
+                    <th class="text-left p-3 font-semibold">Recursos</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-stone-200">
+                  <tr>
+                    <td class="p-3 font-medium">Consolidación de redundancias</td>
+                    <td class="p-3 text-stone-600">Semanal</td>
+                    <td class="p-3 text-stone-600">Cron o umbral de similitud</td>
+                    <td class="p-3 text-stone-600">CPU, I/O</td>
+                  </tr>
+                  <tr>
+                    <td class="p-3 font-medium">Actualización de embeddings</td>
+                    <td class="p-3 text-stone-600">Mensual</td>
+                    <td class="p-3 text-stone-600">Nuevo modelo, degradación</td>
+                    <td class="p-3 text-stone-600">GPU/TPU</td>
+                  </tr>
+                  <tr>
+                    <td class="p-3 font-medium">Recomputación de centralidades</td>
+                    <td class="p-3 text-stone-600">Semanal</td>
+                    <td class="p-3 text-stone-600">Cron fijo</td>
+                    <td class="p-3 text-stone-600">CPU paralela, memoria</td>
+                  </tr>
+                  <tr>
+                    <td class="p-3 font-medium">Generación de resúmenes</td>
+                    <td class="p-3 text-stone-600">Diaria</td>
+                    <td class="p-3 text-stone-600">Post-ingesta masiva</td>
+                    <td class="p-3 text-stone-600">LLM API calls</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="grid lg:grid-cols-2 gap-8 mb-8">
+            <div>
+              <h4 class="font-semibold text-lg text-stone-800 mb-4">Optimización del Grafo</h4>
+              <div class="space-y-4">
+                <div class="bg-stone-50 p-4 rounded-lg">
+                  <h5 class="font-medium text-stone-700 mb-2">Detección de Comunidades</h5>
+                  <p class="text-sm text-stone-600">
+                    Algoritmos Louvain/Leiden para identificar grupos densamente conectados,
+                    revelando estructura temática latente.
+                  </p>
+                </div>
+                <div class="bg-stone-50 p-4 rounded-lg">
+                  <h5 class="font-medium text-stone-700 mb-2">Identificación de Huecos</h5>
+                  <p class="text-sm text-stone-600">
+                    Comparación contra ontologías de dominio para detectar
+                    oportunidades de investigación y prioridades de ingesta.
+                  </p>
+                </div>
+                <div class="bg-stone-50 p-4 rounded-lg">
+                  <h5 class="font-medium text-stone-700 mb-2">Inferencia de Relaciones</h5>
+                  <p class="text-sm text-stone-600">
+                    Patrones de grafo existentes para proponer conexiones no explícitas,
+                    funcionando como asistencia de curación.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h4 class="font-semibold text-lg text-stone-800 mb-4">Scheduling y Ejecución</h4>
+              <div class="bg-white border border-stone-200 p-6 rounded-lg">
+                <div class="space-y-4">
+                  <div>
+                    <h5 class="font-medium text-stone-700 mb-2">Triggers Flexibles</h5>
+                    <p class="text-sm text-stone-600 mb-2">
+                      Combinación de cron programado y triggers por volumen
+                      para responder a cargas irregulares.
+                    </p>
+                  </div>
+
+                  <div>
+                    <h5 class="font-medium text-stone-700 mb-2">Ejecución Asíncrona</h5>
+                    <p class="text-sm text-stone-600 mb-2">
+                      asyncio para operaciones I/O-bound,
+                      multiprocessing para CPU-bound.
+                    </p>
+                  </div>
+
+                  <div>
+                    <h5 class="font-medium text-stone-700 mb-2">Checkpointing</h5>
+                    <p class="text-sm text-stone-600 mb-2">
+                      Persistencia de progreso para recuperación
+                      ante fallos y reanudación desde punto de interrupción.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="section-divider max-w-7xl mx-auto px-8"></div>
+
+      <!-- CLI Interface -->
+      <section id="cli-interface" class="max-w-7xl mx-auto px-8 py-12">
+        <h2 class="font-tiempos text-4xl font-bold text-stone-900 mb-8">4. Interfaz de Línea de Comandos (CLI)</h2>
+
+        <!-- System Control Commands -->
+        <div id="system-control" class="mb-12">
+          <h3 class="font-tiempos text-2xl font-bold text-stone-800 mb-6">4.1 Comandos de Control del Sistema</h3>
+
+          <div class="grid lg:grid-cols-2 gap-8 mb-8">
+            <div>
+              <h4 class="font-semibold text-lg text-stone-800 mb-4">Gestión de Agentes</h4>
+              <div class="bg-stone-900 text-stone-100 p-6 rounded-lg font-mono text-sm">
+                <div class="space-y-3">
+                  <div>
+                    <span class="text-green-400">$</span> knowledge-system up
+                    <span class="text-stone-400"># Iniciar sistema completo</span>
+                  </div>
+                  <div>
+                    <span class="text-green-400">$</span> knowledge-system agent start librarian --name ingest-01
+                    <span class="text-stone-400"># Iniciar agente específico</span>
+                  </div>
+                  <div>
+                    <span class="text-green-400">$</span> knowledge-system agent scale researcher --replicas 3
+                    <span class="text-stone-400"># Escalar investigadores</span>
+                  </div>
+                  <div>
+                    <span class="text-green-400">$</span> knowledge-system agent status
+                    <span class="text-stone-400"># Ver estado de agentes</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-4 bg-stone-100 p-4 rounded-lg">
+                <h5 class="font-medium text-stone-700 mb-2">Salida de Estado</h5>
+                <div class="font-mono text-xs text-stone-600">
+                  <div>NAME TYPE STATUS UPTIME QUEUE_DEPTH LAST_HEARTBEAT</div>
+                  <div>ingest-01 librarian active 2h34m 12 2026-02-16T14:32:01Z</div>
+                  <div>research-01 researcher active 1h45m 0 2026-02-16T14:31:58Z</div>
+                  <div>research-02 researcher active 1h45m 3 2026-02-16T14:32:00Z</div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h4 class="font-semibold text-lg text-stone-800 mb-4">Operaciones de Ingesta</h4>
+              <div class="bg-stone-900 text-stone-100 p-6 rounded-lg font-mono text-sm">
+                <div class="space-y-3">
+                  <div>
+                    <span class="text-green-400">$</span> knowledge-system index ./documents --recursive --watch
+                    <span class="text-stone-400"># Ingesta básica con monitoreo</span>
+                  </div>
+                  <div>
+                    <span class="text-green-400">$</span> knowledge-system index s3://bucket/reports \
+                    <br/>
+                    <span class="ml-4">--source-type financial_report \</span>
+                    <br/>
+                    <span class="ml-4">--metadata &#39;{&#34;quarter&#34;: &#34;Q3&#34;, &#34;year&#34;: 2024}&#39;</span>
+                    <span class="text-stone-400"># Ingesta con metadatos enriquecidos</span>
+                  </div>
+                  <div>
+                    <span class="text-green-400">$</span> knowledge-system index ./src --type code --include-ast
+                    <span class="text-stone-400"># Ingesta de código con análisis AST</span>
+                  </div>
+                  <div>
+                    <span class="text-green-400">$</span> knowledge-system index --reprocess \
+                    <br/>
+                    <span class="ml-4">--filter &#34;source_type:slack AND date &gt; 2024-01-01&#34;</span>
+                    <span class="text-stone-400"># Reprocesamiento selectivo</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="pull-quote">
+            &#34;La CLI proporciona interfaz unificada para operaciones del ciclo de vida de agentes,
+            con configuración dinámica sin reinicio y monitorización de estado y colas de mensajes.&#34;
+          </div>
+        </div>
+
+        <!-- Query Commands -->
+        <div id="query-commands" class="mb-12">
+          <h3 class="font-tiempos text-2xl font-bold text-stone-800 mb-6">4.2 Comandos de Consulta y Prueba</h3>
+
+          <div class="grid lg:grid-cols-2 gap-8">
+            <div>
+              <h4 class="font-semibold text-lg text-stone-800 mb-4">Modo Interactivo (REPL)</h4>
+              <div class="bg-stone-900 text-stone-100 p-6 rounded-lg font-mono text-sm">
+                <div class="mb-4">
+                  <div class="text-green-400">$</div>
+                  <div>knowledge-system query --interactive</div>
+                </div>
+                <div class="space-y-2 text-stone-300">
+                  <div>knowledge&gt; ¿Qué proyectos de ML tenemos documentados?</div>
+                  <div class="text-stone-400 ml-4">Buscando... encontrados 12 proyectos relevantes:</div>
+                  <div class="ml-4">
+                    <div>1. fraud-detection-v2 (Documento: ml-roadmap-2024.pdf)</div>
+                    <div class="text-stone-400 ml-4">Clasificación con XGBoost y redes neuronales</div>
+                  </div>
+                  <div class="ml-4">
+                    <div>2. nlp-pipeline (Conversación: #ml-team, 2024-03-15)</div>
+                    <div class="text-stone-400 ml-4">Procesamiento de lenguaje para soporte</div>
+                  </div>
+                  <div>knowledge&gt; Más detalles sobre el primero</div>
+                  <div class="text-stone-400 ml-4">[Respuesta detallada con diagrama]</div>
+                  <div>knowledge&gt; :export last --format markdown</div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h4 class="font-semibold text-lg text-stone-800 mb-4">Evaluación y Benchmarking</h4>
+              <div class="bg-stone-900 text-stone-100 p-6 rounded-lg font-mono text-sm">
+                <div class="space-y-3">
+                  <div>
+                    <span class="text-green-400">$</span> knowledge-system eval \
+                    <br/>
+                    <span class="ml-4">--test-set ./benchmarks/qa-financial-2024.jsonl \</span>
+                    <br/>
+                    <span class="ml-4">--metrics precision@5,recall@10,mrr,ndcg \</span>
+                    <br/>
+                    <span class="ml-4">--output ./results/baseline.json</span>
+                    <span class="text-stone-400"># Ejecutar conjunto de prueba</span>
+                  </div>
+                  <div>
+                    <span class="text-green-400">$</span> knowledge-system eval --compare \
+                    <br/>
+                    <span class="ml-4">./results/baseline.json,./results/new-embeddings.json \</span>
+                    <br/>
+                    <span class="ml-4">--significance-test paired-t-test</span>
+                    <span class="text-stone-400"># Comparación A/B</span>
+                  </div>
+                  <div>
+                    <span class="text-green-400">$</span> knowledge-system eval report \
+                    <br/>
+                    <span class="ml-4">--input ./results/ --format html \</span>
+                    <br/>
+                    <span class="ml-4">--output ./report/</span>
+                    <span class="text-stone-400"># Generar reporte visual</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-4 bg-stone-100 p-4 rounded-lg">
+                <h5 class="font-medium text-stone-700 mb-2">Métricas Soportadas</h5>
+                <div class="grid grid-cols-2 gap-2 text-xs text-stone-600">
+                  <div>• precision@k</div>
+                  <div>• recall</div>
+                  <div>• MRR</div>
+                  <div>• nDCG</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="section-divider max-w-7xl mx-auto px-8"></div>
+
+      <!-- External APIs -->
+      <section id="external-apis" class="max-w-7xl mx-auto px-8 py-12">
+        <h2 class="font-tiempos text-4xl font-bold text-stone-900 mb-8">5. Conectividad y APIs Externas</h2>
+
+        <!-- Service Interfaces -->
+        <div id="service-interfaces" class="mb-12">
+          <h3 class="font-tiempos text-2xl font-bold text-stone-800 mb-6">5.1 Interfaces de Servicio</h3>
+
+          <div class="grid lg:grid-cols-2 gap-8 mb-8">
+            <div>
+              <h4 class="font-semibold text-lg text-stone-800 mb-4">API REST</h4>
+              <div class="bg-white border border-stone-200 rounded-lg overflow-hidden">
+                <div class="bg-stone-50 px-4 py-3 border-b border-stone-200">
+                  <h5 class="font-medium text-stone-700">Endpoints Principales</h5>
+                </div>
+                <div class="divide-y divide-stone-200">
+                  <div class="p-4">
+                    <div class="flex items-center space-x-3 mb-2">
+                      <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded font-medium">POST</span>
+                      <span class="font-mono text-sm text-stone-700">/ingest</span>
+                    </div>
+                    <p class="text-xs text-stone-600">Ingesta de documento único o batch</p>
+                  </div>
+                  <div class="p-4">
+                    <div class="flex items-center space-x-3 mb-2">
+                      <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded font-medium">POST</span>
+                      <span class="font-mono text-sm text-stone-700">/query</span>
+                    </div>
+                    <p class="text-xs text-stone-600">Consulta síncrona con respuesta estructurada</p>
+                  </div>
+                  <div class="p-4">
+                    <div class="flex items-center space-x-3 mb-2">
+                      <span class="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded font-medium">GET</span>
+                      <span class="font-mono text-sm text-stone-700">/graph/schema</span>
+                    </div>
+                    <p class="text-xs text-stone-600">Esquema actual del grafo</p>
+                  </div>
+                  <div class="p-4">
+                    <div class="flex items-center space-x-3 mb-2">
+                      <span class="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded font-medium">GET</span>
+                      <span class="font-mono text-sm text-stone-700">/graph/stats</span>
+                    </div>
+                    <p class="text-xs text-stone-600">Métricas de salud y rendimiento</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h4 class="font-semibold text-lg text-stone-800 mb-4">SDK Cliente</h4>
+              <div class="bg-stone-900 text-stone-100 p-6 rounded-lg">
+                <div class="mb-4">
+                  <div class="text-blue-400 font-medium">Python SDK</div>
+                </div>
+                <div class="font-mono text-sm space-y-2">
+                  <div><span class="text-green-400">from</span> knowledge_system <span class="text-green-400">import</span> Client</div>
+                  <div class="ml-4">client = Client(api_key=<span class="text-yellow-400">&#34;ks_...&#34;</span>)</div>
+                  <div></div>
+                  <div class="text-stone-400"># Ingesta con seguimiento</div>
+                  <div class="ml-4">job = client.ingest(</div>
+                  <div class="ml-8">source=IngestSource.from_file(<span class="text-yellow-400">&#34;./report.pdf&#34;</span>),</div>
+                  <div class="ml-8">metadata={<span class="text-yellow-400">&#34;priority&#34;</span>: <span class="text-yellow-400">&#34;high&#34;</span>}</div>
+                  <div class="ml-4">)</div>
+                  <div></div>
+                  <div class="text-stone-400"># Consulta con contexto</div>
+                  <div class="ml-4">response = client.query(</div>
+                  <div class="ml-8"><span class="text-yellow-400">&#34;¿Qué sabemos sobre los incidentes de Q3?&#34;</span>,</div>
+                  <div class="ml-8">conversation_id=<span class="text-yellow-400">&#34;conv_123&#34;</span>,</div>
+                  <div class="ml-8">return_sources=<span class="text-green-400">True</span></div>
+                  <div class="ml-4">)</div>
+                </div>
+              </div>
+
+              <div class="mt-4 space-y-3">
+                <div class="flex items-center space-x-3">
+                  <i class="fas fa-shield-alt text-green-600"></i>
+                  <span class="text-sm text-stone-600">Manejo de conexiones persistentes</span>
+                </div>
+                <div class="flex items-center space-x-3">
+                  <i class="fas fa-redo text-blue-600"></i>
+                  <span class="text-sm text-stone-600">Retry automático con backoff</span>
+                </div>
+                <div class="flex items-center space-x-3">
+                  <i class="fas fa-key text-purple-600"></i>
+                  <span class="text-sm text-stone-600">Autenticación API key y OAuth2</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Native Integrations -->
+        <div id="native-integrations" class="mb-12">
+          <h3 class="font-tiempos text-2xl font-bold text-stone-800 mb-6">5.2 Integraciones Nativas</h3>
+
+          <div class="grid lg:grid-cols-2 gap-8">
+            <div>
+              <h4 class="font-semibold text-lg text-stone-800 mb-4">Editores de Código</h4>
+              <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl">
+                <div class="flex items-center mb-4">
+                  <i class="fab fa-microsoft text-blue-600 text-2xl mr-3"></i>
+                  <h5 class="font-medium text-stone-800">Extensión VS Code</h5>
+                </div>
+                <div class="space-y-3 text-sm text-stone-600">
+                  <div class="flex items-start space-x-3">
+                    <i class="fas fa-folder-open text-blue-500 mt-1"></i>
+                    <div>
+                      <div class="font-medium text-stone-700">Indexación de Workspace</div>
+                      <div>Comando &#34;Index Current Workspace&#34; para procesar código y documentación</div>
+                    </div>
+                  </div>
+                  <div class="flex items-start space-x-3">
+                    <i class="fas fa-search text-blue-500 mt-1"></i>
+                    <div>
+                      <div class="font-medium text-stone-700">Comandos de Paleta</div>
+                      <div>&#34;Ask Knowledge Base&#34; (Ctrl+Shift+K) para consulta rápida</div>
+                    </div>
+                  </div>
+                  <div class="flex items-start space-x-3">
+                    <i class="fas fa-info-circle text-blue-500 mt-1"></i>
+                    <div>
+                      <div class="font-medium text-stone-700">Decoraciones Inline</div>
+                      <div>Información relacionada al hover sobre símbolos de código</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h4 class="font-semibold text-lg text-stone-800 mb-4">Plataformas de Comunicación</h4>
+              <div class="bg-gradient-to-br from-emerald-50 to-green-50 p-6 rounded-xl">
+                <div class="flex items-center mb-4">
+                  <i class="fab fa-slack text-emerald-600 text-2xl mr-3"></i>
+                  <h5 class="font-medium text-stone-800">Bot de Slack/Discord</h5>
+                </div>
+                <div class="space-y-3 text-sm text-stone-600">
+                  <div class="flex items-start space-x-3">
+                    <i class="fas fa-at text-emerald-500 mt-1"></i>
+                    <div>
+                      <div class="font-medium text-stone-700">Menciones Directas</div>
+                      <div>@KnowledgeBot dispara consulta completa con contexto del canal</div>
+                    </div>
+                  </div>
+                  <div class="flex items-start space-x-3">
+                    <i class="fas fa-eye text-emerald-500 mt-1"></i>
+                    <div>
+                      <div class="font-medium text-stone-700">Modo Pasivo</div>
+                      <div>Indexa conversaciones automáticamente, responde a preguntas implícitas</div>
+                    </div>
+                  </div>
+                  <div class="flex items-start space-x-3">
+                    <i class="fas fa-reply text-emerald-500 mt-1"></i>
+                    <div>
+                      <div class="font-medium text-stone-700">Respuestas en Thread</div>
+                      <div>Citas verificables manteniendo el canal principal limpio</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-4 bg-amber-50 p-4 rounded-lg">
+                <h5 class="font-medium text-amber-800 mb-2">Webhooks para Indexación</h5>
+                <p class="text-sm text-amber-700">
+                  Integración con GitHub, Jira, Notion para notificar nuevo contenido
+                  y disparar ingestión programática.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="section-divider max-w-7xl mx-auto px-8"></div>
+
+      <!-- Self-Hosted Deployment -->
+      <section id="self-hosted-deployment" class="max-w-7xl mx-auto px-8 py-12">
+        <h2 class="font-tiempos text-4xl font-bold text-stone-900 mb-8">6. Despliegue Self-Hosted</h2>
+
+        <!-- Containerized Infrastructure -->
+        <div id="containerized-infra" class="mb-12">
+          <h3 class="font-tiempos text-2xl font-bold text-stone-800 mb-6">6.1 Infraestructura Contenerizada</h3>
+
+          <div class="grid lg:grid-cols-2 gap-8 mb-8">
+            <div>
+              <h4 class="font-semibold text-lg text-stone-800 mb-4">Docker Compose (Desarrollo)</h4>
+              <div class="bg-stone-900 text-stone-100 p-6 rounded-lg font-mono text-xs overflow-x-auto">
+                <div class="whitespace-pre">
+                  <span class="text-green-400"># docker-compose.yml</span>
+                  version: <span class="text-yellow-400">&#39;3.8&#39;</span>
+
+                  services:
+                  falkordb:
+                  image: falkordb/falkordb:latest
+                  ports:
+                  - <span class="text-yellow-400">&#34;6379:6379&#34;</span>
+                  - <span class="text-yellow-400">&#34;3000:3000&#34;</span>
+                  volumes:
+                  - falkordb-data:/var/lib/falkordb/data
+
+                  message-queue:
+                  image: redis:7-alpine
+
+                  librarian:
+                  build: ./agents/librarian
+                  environment:
+                  - DB_HOST=falkordb
+                  - QUEUE_HOST=message-queue
+
+                  researcher:
+                  build: ./agents/researcher
+                  ports:
+                  - <span class="text-yellow-400">&#34;8000:8000&#34;</span>
+                  deploy:
+                  replicas: <span class="text-yellow-400">2</span>
+
+                  organizer:
+                  build: ./agents/organizer
+                  environment:
+                  - SCHEDULE=<span class="text-yellow-400">&#34;0 2 * * *&#34;</span>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h4 class="font-semibold text-lg text-stone-800 mb-4">Kubernetes (Producción)</h4>
+              <div class="space-y-4">
+                <div class="bg-indigo-50 p-4 rounded-lg">
+                  <h5 class="font-medium text-indigo-800 mb-2">FalkorDB</h5>
+                  <p class="text-sm text-indigo-700">
+                    StatefulSet + PVC, replicación master-replica,
+                    backup snapshot periódico
+                  </p>
+                </div>
+                <div class="bg-emerald-50 p-4 rounded-lg">
+                  <h5 class="font-medium text-emerald-800 mb-2">Agentes</h5>
+                  <p class="text-sm text-emerald-700">
+                    Deployment con HPA, escalado por métricas personalizadas,
+                    pod disruption budget
+                  </p>
+                </div>
+                <div class="bg-amber-50 p-4 rounded-lg">
+                  <h5 class="font-medium text-amber-800 mb-2">API Gateway</h5>
+                  <p class="text-sm text-amber-700">
+                    Ingress + cert-manager, TLS terminación,
+                    rate limiting, autenticación
+                  </p>
+                </div>
+              </div>
+
+              <div class="mt-4 bg-white border border-stone-200 p-4 rounded-lg">
+                <h5 class="font-medium text-stone-700 mb-2">HorizontalPodAutoscaler</h5>
+                <p class="text-sm text-stone-600">
+                  Escalado basado en métricas personalizadas:
+                  profundidad de cola, latencia p95, tasa de errores.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Security Considerations -->
+        <div id="security-considerations" class="mb-12">
+          <h3 class="font-tiempos text-2xl font-bold text-stone-800 mb-6">6.2 Consideraciones de Seguridad</h3>
+
+          <div class="grid lg:grid-cols-2 gap-8 mb-8">
+            <div>
+              <h4 class="font-semibold text-lg text-stone-800 mb-4">Aislamiento Multi-Tenant</h4>
+              <div class="space-y-4">
+                <div class="bg-white border border-stone-200 p-4 rounded-lg">
+                  <div class="flex justify-between items-center mb-2">
+                    <h5 class="font-medium text-stone-700">Namespaces de Grafo</h5>
+                    <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">FalkorDB</span>
+                  </div>
+                  <p class="text-sm text-stone-600">Separación lógica de datos con SELECT GRAPH tenant_001</p>
+                </div>
+                <div class="bg-white border border-stone-200 p-4 rounded-lg">
+                  <div class="flex justify-between items-center mb-2">
+                    <h5 class="font-medium text-stone-700">RBAC en API</h5>
+                    <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">OPA/Rego</span>
+                  </div>
+                  <p class="text-sm text-stone-600">Control de acceso a operaciones con políticas declarativas</p>
+                </div>
+                <div class="bg-white border border-stone-200 p-4 rounded-lg">
+                  <div class="flex justify-between items-center mb-2">
+                    <h5 class="font-medium text-stone-700">Row-level Security</h5>
+                    <span class="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">Cypher</span>
+                  </div>
+                  <p class="text-sm text-stone-600">Filtrado automático por tenant con predicados en consultas</p>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h4 class="font-semibold text-lg text-stone-800 mb-4">Protección de Datos</h4>
+              <div class="space-y-4">
+                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg">
+                  <h5 class="font-medium text-indigo-800 mb-2">Cifrado en Tránsito</h5>
+                  <p class="text-sm text-indigo-700">TLS 1.3 para todas las conexiones, mutual TLS para comunicación interna</p>
+                </div>
+                <div class="bg-gradient-to-r from-emerald-50 to-green-50 p-4 rounded-lg">
+                  <h5 class="font-medium text-emerald-800 mb-2">Cifrado en Reposo</h5>
+                  <p class="text-sm text-emerald-700">Volúmenes LUKS, backups encriptados con KMS</p>
+                </div>
+                <div class="bg-gradient-to-r from-amber-50 to-orange-50 p-4 rounded-lg">
+                  <h5 class="font-medium text-amber-800 mb-2">Sanitización de Inputs</h5>
+                  <p class="text-sm text-amber-700">Validación de esquema, detección de inyección Cypher</p>
+                </div>
+                <div class="bg-gradient-to-r from-rose-50 to-pink-50 p-4 rounded-lg">
+                  <h5 class="font-medium text-rose-800 mb-2">Prevención de Abuso</h5>
+                  <p class="text-sm text-rose-700">Cuotas por tenant, circuit breakers, rate limiting</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="section-divider max-w-7xl mx-auto px-8"></div>
+
+      <!-- Code Organization -->
+      <section id="code-organization" class="max-w-7xl mx-auto px-8 py-12">
+        <h2 class="font-tiempos text-4xl font-bold text-stone-900 mb-8">7. Organización del Código y Buenas Prácticas</h2>
+
+        <!-- Project Structure -->
+        <div id="project-structure" class="mb-12">
+          <h3 class="font-tiempos text-2xl font-bold text-stone-800 mb-6">7.1 Estructura de Proyecto</h3>
+
+          <div class="bg-stone-900 text-stone-100 p-6 rounded-lg mb-8 font-mono text-sm overflow-x-auto">
+            <div class="whitespace-pre">
+              <span class="text-green-400">knowledge-system/</span>
+              ├── src/
+              │ ├── agents/ <span class="text-stone-400"># Implementaciones de agentes</span>
+              │ │ ├── librarian/ <span class="text-stone-400"># Agente de ingesta</span>
+              │ │ │ ├── extractors/ <span class="text-stone-400"># Parsers por formato</span>
+              │ │ │ ├── segmenters/ <span class="text-stone-400"># Estrategias de chunking</span>
+              │ │ │ └── pipeline.py <span class="text-stone-400"># Orquestación del flujo</span>
+              │ │ ├── researcher/ <span class="text-stone-400"># Agente de consulta</span>
+              │ │ │ ├── retrievers/ <span class="text-stone-400"># Vector, graph, hybrid</span>
+              │ │ │ ├── synthesizers/ <span class="text-stone-400"># Generación de respuestas</span>
+              │ │ │ └── query_engine.py <span class="text-stone-400"># Interfaz principal</span>
+              │ │ └── organizer/ <span class="text-stone-400"># Agente de mantenimiento</span>
+              │ │ ├── tasks/ <span class="text-stone-400"># Tareas individuales</span>
+              │ │ ├── scheduler.py <span class="text-stone-400"># Programación y triggering</span>
+              │ │ └── checkpoint.py <span class="text-stone-400"># Recuperación de estado</span>
+              │ ├── graph/ <span class="text-stone-400"># Abstracciones de base de datos</span>
+              │ │ ├── base.py <span class="text-stone-400"># Protocolo abstracto</span>
+              │ │ ├── falkordb_client.py <span class="text-stone-400"># Implementación FalkorDB</span>
+              │ │ └── schema.py <span class="text-stone-400"># Definición de entidades</span>
+              │ ├── cli/ <span class="text-stone-400"># Comandos y UI de terminal</span>
+              │ │ ├── commands/ <span class="text-stone-400"># Agent, ingest, query, graph, eval</span>
+              │ │ └── formatters/ <span class="text-stone-400"># Salida tabular, progreso</span>
+              │ ├── api/ <span class="text-stone-400"># Servidores REST/WebSocket</span>
+              │ │ ├── rest/
+              │ │ └── middleware/ <span class="text-stone-400"># Auth, logging, rate limiting</span>
+              │ ├── sdk/ <span class="text-stone-400"># Clientes oficiales</span>
+              │ └── common/ <span class="text-stone-400"># Utilidades y configuración</span>
+              │ ├── config.py <span class="text-stone-400"># Pydantic settings</span>
+              │ ├── logging.py <span class="text-stone-400"># Estructurado con contexto</span>
+              │ └── metrics.py <span class="text-stone-400"># Prometheus client</span>
+              ├── tests/
+              │ ├── unit/ <span class="text-stone-400"># Aislados, mocks</span>
+              │ ├── integration/ <span class="text-stone-400"># Con DB de prueba</span>
+              │ └── e2e/ <span class="text-stone-400"># CLI y APIs con fixtures</span>
+              ├── configs/ <span class="text-stone-400"># YAML por ambiente</span>
+              ├── docs/ <span class="text-stone-400"># Sphinx + notebooks</span>
+              └── deployments/ <span class="text-stone-400"># Kustomize/Helm</span>
+            </div>
+          </div>
+
+          <div class="grid lg:grid-cols-3 gap-6 mb-8">
+            <div class="bg-gradient-to-br from-indigo-50 to-blue-50 p-6 rounded-xl">
+              <i class="fas fa-syringe text-indigo-600 text-2xl mb-3"></i>
+              <h4 class="font-medium text-stone-800 mb-2">Inyección de Dependencias</h4>
+              <p class="text-sm text-stone-600">
+                Declaración explícita de dependencias en constructores para
+                testabilidad y sustitución de implementaciones.
+              </p>
+            </div>
+            <div class="bg-gradient-to-br from-emerald-50 to-green-50 p-6 rounded-xl">
+              <i class="fas fa-exchange-alt text-emerald-600 text-2xl mb-3"></i>
+              <h4 class="font-medium text-stone-800 mb-2">Protocolos Abstractos</h4>
+              <p class="text-sm text-stone-600">
+                Intercambio transparente de motor de grafo mediante
+                protocolo GraphStore común.
+              </p>
+            </div>
+            <div class="bg-gradient-to-br from-amber-50 to-orange-50 p-6 rounded-xl">
+              <i class="fas fa-chart-line text-amber-600 text-2xl mb-3"></i>
+              <h4 class="font-medium text-stone-800 mb-2">Observabilidad</h4>
+              <p class="text-sm text-stone-600">
+                Logging estructurado JSON, métricas Prometheus,
+                trazas distribuidas para debugging.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Testing and Quality -->
+        <div id="testing-quality" class="mb-12">
+          <h3 class="font-tiempos text-2xl font-bold text-stone-800 mb-6">7.2 Testing y Calidad</h3>
+
+          <div class="grid lg:grid-cols-2 gap-8 mb-8">
+            <div>
+              <h4 class="font-semibold text-lg text-stone-800 mb-4">Estrategia de Pruebas</h4>
+              <div class="space-y-4">
+                <div class="bg-white border border-stone-200 p-4 rounded-lg">
+                  <div class="flex justify-between items-center mb-2">
+                    <h5 class="font-medium text-stone-700">Unitarias</h5>
+                    <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">pytest + mocks</span>
+                  </div>
+                  <p class="text-sm text-stone-600">Funciones aisladas, componentes puros, lógica de negocio</p>
+                </div>
+                <div class="bg-white border border-stone-200 p-4 rounded-lg">
+                  <div class="flex justify-between items-center mb-2">
+                    <h5 class="font-medium text-stone-700">Integración</h5>
+                    <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">testcontainers</span>
+                  </div>
+                  <p class="text-sm text-stone-600">Componentes con DB real, pipeline completo, migraciones</p>
+                </div>
+                <div class="bg-white border border-stone-200 p-4 rounded-lg">
+                  <div class="flex justify-between items-center mb-2">
+                    <h5 class="font-medium text-stone-700">E2E</h5>
+                    <span class="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">pytest-bdd</span>
+                  </div>
+                  <p class="text-sm text-stone-600">CLI y APIs con fixtures, escenarios de usuario</p>
+                </div>
+                <div class="bg-white border border-stone-200 p-4 rounded-lg">
+                  <div class="flex justify-between items-center mb-2">
+                    <h5 class="font-medium text-stone-700">Performance</h5>
+                    <span class="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded">locust/k6</span>
+                  </div>
+                  <p class="text-sm text-stone-600">Carga y estrés, throughput, latencia p99</p>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h4 class="font-semibold text-lg text-stone-800 mb-4">Documentación Viva</h4>
+              <div class="space-y-4">
+                <div class="bg-indigo-50 p-4 rounded-lg">
+                  <h5 class="font-medium text-indigo-800 mb-2">Docstrings Ejecutables</h5>
+                  <p class="text-sm text-indigo-700">
+                    Formato Google/NumPy con doctests que se ejecutan en CI,
+                    garantizando ejemplos actualizados.
+                  </p>
+                </div>
+                <div class="bg-emerald-50 p-4 rounded-lg">
+                  <h5 class="font-medium text-emerald-800 mb-2">Notebooks de Tutorial</h5>
+                  <p class="text-sm text-emerald-700">
+                    Recorridos guiados versionados: &#34;Tu primera ingestión&#34;,
+                    &#34;Investigador personalizado&#34;, &#34;Optimización del grafo&#34;.
+                  </p>
+                </div>
+                <div class="bg-amber-50 p-4 rounded-lg">
+                  <h5 class="font-medium text-amber-800 mb-2">OpenAPI Automático</h5>
+                  <p class="text-sm text-amber-700">
+                    Generación desde código con fastapi/apispec,
+                    UI Swagger/ReDoc servida en /docs.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="pull-quote">
+            &#34;La calidad del software se construye a través de una estrategia de pruebas exhaustiva
+            que abarca desde unidades aisladas hasta escenarios de usuario completos,
+            documentación viva que se mantiene actualizada automáticamente,
+            y un proceso de CI/CD que garantiza la consistencia en cada cambio.&#34;
+          </div>
+        </div>
+      </section>
+
+      <!-- Footer -->
+      <footer class="bg-stone-800 text-stone-300 py-12">
+        <div class="max-w-7xl mx-auto px-8">
+          <div class="grid lg:grid-cols-3 gap-8">
+            <div>
+              <h3 class="font-tiempos text-xl font-bold text-white mb-4">Referencias Clave</h3>
+              <div class="space-y-2 text-sm">
+                <a href="https://www.falkordb.com/blog/building-ai-agents-with-memory-langchain/" class="block hover:text-white transition-colors">Building AI Agents with Memory - FalkorDB</a>
+                <a href="https://dasroot.net/posts/2026/02/multi-agent-multi-llm-systems-future-ai-architecture-guide-2026/" class="block hover:text-white transition-colors">Multi-Agent Systems Architecture Guide</a>
+                <a href="https://www.ema.co/additional-blogs/addition-blogs/multi-agent-workflows-langchain-langgraph" class="block hover:text-white transition-colors">Multi-Agent Workflows with LangGraph</a>
+                <a href="https://docs.falkordb.com/genai-tools/ag2.html" class="block hover:text-white transition-colors">FalkorGraphRag Documentation</a>
+              </div>
+            </div>
+            <div>
+              <h3 class="font-tiempos text-xl font-bold text-white mb-4">Tecnologías Principales</h3>
+              <div class="grid grid-cols-2 gap-2 text-sm">
+                <div>LangGraph</div>
+                <div>FalkorDB</div>
+                <div>Neo4j</div>
+                <div>Memgraph</div>
+                <div>Typer</div>
+                <div>Docker</div>
+                <div>Kubernetes</div>
+                <div>Prometheus</div>
+              </div>
+            </div>
+            <div>
+              <h3 class="font-tiempos text-xl font-bold text-white mb-4">Patrones de Diseño</h3>
+              <div class="text-sm space-y-1">
+                <div>Especialización de Agentes</div>
+                <div>Grafo de Estado Dirigido</div>
+                <div>Mantenimiento Nocturno</div>
+                <div>Inyección de Dependencias</div>
+                <div>Observabilidad Distribuida</div>
+              </div>
+            </div>
+          </div>
+          <div class="border-t border-stone-700 mt-8 pt-8 text-center text-sm">
+            <p>Sistema Multiagente con Memoria de Grafos - Arquitectura de Implementación</p>
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <script>
+        // Table of Contents functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const tocLinks = document.querySelectorAll('.toc-link');
+            const sections = document.querySelectorAll('section[id], div[id]');
+            const tocToggle = document.getElementById('toc-toggle');
+            const tocFixed = document.querySelector('.toc-fixed');
+            
+            // Toggle TOC on mobile
+            if (tocToggle) {
+                tocToggle.addEventListener('click', function() {
+                    tocFixed.classList.toggle('open');
+                });
+            }
+            
+            // Smooth scrolling and active link highlighting
+            tocLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('href').substring(1);
+                    const targetElement = document.getElementById(targetId);
+                    
+                    if (targetElement) {
+                        const offsetTop = targetElement.offsetTop - 20;
+                        window.scrollTo({
+                            top: offsetTop,
+                            behavior: 'smooth'
+                        });
+                    }
+                    
+                    // Close TOC on mobile after clicking a link
+                    if (window.innerWidth <= 1024) {
+                        tocFixed.classList.remove('open');
+                    }
+                });
+            });
+            
+            // Update active link on scroll
+            window.addEventListener('scroll', function() {
+                let current = '';
+                sections.forEach(section => {
+                    const sectionTop = section.offsetTop - 100;
+                    if (window.scrollY >= sectionTop) {
+                        current = section.getAttribute('id');
+                    }
+                });
+                
+                tocLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href') === '#' + current) {
+                        link.classList.add('active');
+                    }
+                });
+            });
+            
+            // Close TOC when clicking outside on mobile
+            document.addEventListener('click', function(e) {
+                if (window.innerWidth > 1024) return;
+                
+                if (!tocFixed.contains(e.target) && e.target !== tocToggle) {
+                    tocFixed.classList.remove('open');
+                }
+            });
+        });
+    </script>
+  
+
+</body></html>
