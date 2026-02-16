@@ -10,6 +10,7 @@ from agents.librarian import LibrarianAgent
 from agents.researcher import ResearcherAgent
 from agents.consolidator import ConsolidatorAgent
 from agents.auto_researcher import AutoResearcherAgent
+from agents.deleter import DeleterAgent
 
 
 @click.group(name="memory")
@@ -181,3 +182,97 @@ def research_command(topics: tuple, output: str):
         click.echo(f"Research complete. Output: {result['output_dir']}")
 
     asyncio.run(_research())
+
+
+@memory_group.command(name="delete-all")
+@click.option("--confirm", is_flag=True, help="Confirm deletion of ALL memories")
+@click.option("--force", "-f", is_flag=True, help="Skip confirmation prompt")
+def delete_all_command(confirm: bool, force: bool):
+    """Delete ALL memories from the system.
+
+    ⚠️ WARNING: This is irreversible!
+
+    \b
+    Examples:
+        ulmemory memory delete-all --confirm       # Interactive confirmation
+        ulmemory memory delete-all --confirm -f    # No prompt, just delete
+        ulmemory memory delete-all                 # Preview only
+    """
+    async def _delete():
+        memory = MemorySystem()
+        deleter = DeleterAgent(memory)
+
+        # Show count first
+        count = await deleter.count()
+        click.echo(f"\n📊 Total memories: {count}")
+
+        if not confirm:
+            click.echo("\n⚠️  Dry run - no memories deleted")
+            click.echo("   Use --confirm to actually delete")
+            return
+
+        if not force:
+            if not click.confirm(f"\n⚠️  Delete ALL {count} memories? This cannot be undone!"):
+                click.echo("Cancelled.")
+                return
+
+        result = await deleter.delete_all(confirm=True)
+
+        if result["status"] == "success":
+            click.echo(f"\n✅ Deleted {result['qdrant_deleted']} memories")
+        else:
+            click.echo(f"\n❌ Error: {result.get('errors', 'Unknown error')}")
+
+    asyncio.run(_delete())
+
+
+@memory_group.command(name="delete")
+@click.argument("query")
+@click.option("--limit", "-l", default=10, help="Max memories to delete")
+@click.option("--confirm", is_flag=True, help="Confirm deletion")
+def delete_command(query: str, limit: int, confirm: bool):
+    """Delete memories matching a search query.
+
+    \b
+    Examples:
+        ulmemory memory delete "test"           # Preview matches
+        ulmemory memory delete "test" --confirm # Delete matches
+        ulmemory memory delete "test" -l 5      # Max 5 deletions
+    """
+    async def _delete():
+        memory = MemorySystem()
+        deleter = DeleterAgent(memory)
+
+        if not confirm:
+            # Just show what would be deleted
+            from agents.researcher import ResearcherAgent
+            researcher = ResearcherAgent(memory)
+            results = await researcher.query(query, limit=limit)
+
+            click.echo(f"\n🔍 Found {len(results['results'])} memories matching '{query}':")
+            for i, r in enumerate(results["results"], 1):
+                content = r.get("content", "")[:80]
+                click.echo(f"   {i}. {content}...")
+
+            click.echo(f"\n💡 Use --confirm to delete these memories")
+        else:
+            result = await deleter.delete_by_query(query, limit=limit)
+
+            if result["status"] == "success":
+                click.echo(f"\n✅ Deleted {result['deleted']} memories matching '{query}'")
+            else:
+                click.echo(f"\n❌ Error: {result.get('errors', 'Unknown error')}")
+
+    asyncio.run(_delete())
+
+
+@memory_group.command(name="count")
+def count_command():
+    """Count total memories in the system."""
+    async def _count():
+        memory = MemorySystem()
+        deleter = DeleterAgent(memory)
+        count = await deleter.count()
+        click.echo(f"\n📊 Total memories: {count}")
+
+    asyncio.run(_count())

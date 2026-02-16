@@ -40,8 +40,11 @@ CLI para el sistema de memoria híbrida Ultramemory que combina almacenamiento v
 | `ulmemory memory add /path/to/file` | Indexar archivo (PDF, CSV, MD, etc.) |
 | `ulmemory memory query "búsqueda"` | Buscar en memoria vectorial |
 | `ulmemory memory query "term" --limit 10` | Buscar con límite |
+| `ulmemory memory count` | Contar memorias totales |
 | `ulmemory memory analyze` | Análisis completo de salud |
 | `ulmemory memory consolidate` | Limpiar duplicados y mal indexados |
+| `ulmemory memory delete "query" --confirm` | Eliminar por búsqueda |
+| `ulmemory memory delete-all --confirm -f` | Eliminar TODAS las memorias |
 | `ulmemory memory research --topics "AI,ML"` | Investigación automática |
 
 ### Agentes
@@ -54,6 +57,8 @@ CLI para el sistema de memoria híbrida Ultramemory que combina almacenamiento v
 | `ulmemory agent run librarian "texto"` | Agregar a memoria |
 | `ulmemory agent run librarian /path/to/docs` | Indexar directorio |
 | `ulmemory agent run auto-researcher "topic"` | Investigar tema |
+| `ulmemory agent run deleter "all"` | Eliminar todas las memorias |
+| `ulmemory agent run deleter "query"` | Eliminar memorias por búsqueda |
 | `ulmemory agent create` | Crear agente personalizado |
 | `ulmemory agent launch <nombre>` | Lanzar agente custom |
 | `ulmemory agent config <nombre>` | Configurar agente |

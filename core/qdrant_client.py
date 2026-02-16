@@ -99,3 +99,24 @@ class QdrantClientWrapper:
             return result.count
         except Exception:
             return 0
+
+    async def delete_all(self) -> int:
+        """Delete all points from collection."""
+        try:
+            count = await self.count()
+            self.client.delete_collection(collection_name=self.collection_name)
+            await self.ensure_collection()
+            return count
+        except Exception:
+            return 0
+
+    async def delete(self, point_id: str) -> bool:
+        """Delete a specific point by ID."""
+        try:
+            self.client.delete(
+                collection_name=self.collection_name,
+                points_selector=[point_id],
+            )
+            return True
+        except Exception:
+            return False

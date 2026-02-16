@@ -88,11 +88,20 @@ ulmemory memory add "texto" -m "type=nota" -m "priority=high"  # Con metadata
 ulmemory memory query "búsqueda semántica"
 ulmemory memory query "term" --limit 10
 
+# Contar memorias
+ulmemory memory count
+
 # Analizar memoria (detecta problemas)
 ulmemory memory analyze
 
 # Consolidar y limpiar
 ulmemory memory consolidate
+
+# Eliminar memorias
+ulmemory memory delete "query"                     # Preview eliminación
+ulmemory memory delete "query" --confirm           # Eliminar por búsqueda
+ulmemory memory delete-all                         # Preview eliminar todo
+ulmemory memory delete-all --confirm -f            # Eliminar TODO (cuidado!)
 
 # Investigación automática
 ulmemory memory research --topics "AI,ML" --output ./researches
@@ -109,6 +118,8 @@ ulmemory agent run consolidator                     # Limpiar memoria
 ulmemory agent run researcher "query de búsqueda"   # Buscar
 ulmemory agent run librarian "/path/to/docs"        # Indexar archivos
 ulmemory agent run auto-researcher "topic:AI"       # Investigar
+ulmemory agent run deleter "all"                    # Eliminar todas las memorias
+ulmemory agent run deleter "query"                  # Eliminar por búsqueda
 
 # Crear agente personalizado
 ulmemory agent create
@@ -235,6 +246,7 @@ El comando `ulmemory memory consolidate` limpia la memoria:
 | **Researcher** | Busca en memoria | `ulmemory agent run researcher "query"` |
 | **Consolidator** | Limpia y optimiza | `ulmemory agent run consolidator` |
 | **Auto-Researcher** | Investigación automática | `ulmemory agent run auto-researcher "topic"` |
+| **Deleter** | Elimina memorias | `ulmemory agent run deleter "all"` |
 
 ## 📁 Tipos de Archivo Soportados
 

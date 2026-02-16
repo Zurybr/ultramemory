@@ -1,10 +1,59 @@
 """Dashboard commands for all services."""
 
+import socket
 import webbrowser
 
 import click
 
 from ultramemory_cli.settings import settings
+
+
+def _get_local_ips() -> list[str]:
+    """Get all local IP addresses."""
+    ips = []
+    try:
+        # Method 1: Use hostname -I on Linux (most reliable)
+        import subprocess
+        result = subprocess.run(['hostname', '-I'], capture_output=True, text=True)
+        if result.returncode == 0:
+            for ip in result.stdout.strip().split():
+                # Only IPv4, skip localhost, docker bridges, and VPN
+                if '.' in ip and not ip.startswith('127.') and not ip.startswith('172.1'):
+                    # Skip docker bridge networks (172.17-20.x.x)
+                    parts = ip.split('.')
+                    if len(parts) == 4:
+                        first, second = int(parts[0]), int(parts[1])
+                        # Skip docker bridges (172.17-20.x.x) and tailscale (100.x.x.x)
+                        if not (first == 172 and 17 <= second <= 254) and not (first == 100):
+                            if ip not in ips:
+                                ips.append(ip)
+
+        # Method 2: Fallback - connect to external
+        if not ips:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            try:
+                s.connect(('8.8.8.8', 80))
+                ip = s.getsockname()[0]
+                if ip and not ip.startswith('127.'):
+                    ips.append(ip)
+            except Exception:
+                pass
+            finally:
+                s.close()
+
+    except Exception:
+        pass
+    return ips
+
+
+def _is_localhost_url(url: str) -> bool:
+    """Check if URL uses localhost."""
+    return 'localhost' in url or '127.0.0.1' in url
+
+
+def _get_url_for_ip(url: str, ip: str) -> str:
+    """Replace localhost with specific IP."""
+    return url.replace('localhost', ip).replace('127.0.0.1', ip)
 
 
 @click.group(name="dashboard", invoke_without_command=True)
@@ -126,6 +175,28 @@ def show_all(ctx):
     click.echo("│  🐘 pgAdmin (PostgreSQL): http://localhost:5050                          │")
     click.echo("│  📊 Grafana:               http://localhost:3000                         │")
     click.echo("└──────────────────────────────────────────────────────────────────────────┘")
+
+    # Network interfaces
+    api_url = services.get('api', 'http://localhost:8000')
+    if _is_localhost_url(api_url):
+        local_ips = _get_local_ips()
+        if local_ips:  # Show if at least 1 LAN IP
+            click.echo("\n┌──────────────────────────────────────────────────────────────────────────┐")
+            click.echo("│  🌐 ACCESO POR RED / NETWORK INTERFACES                                  │")
+            click.echo("├──────────────────────────────────────────────────────────────────────────┤")
+
+            for ip in local_ips:
+                click.echo(f"│                                                                          │")
+                click.echo(f"│  📡 {ip:<64}│")
+                click.echo(f"│     API:          http://{ip}:8000{' ' * (48 - len(ip))}│")
+                click.echo(f"│     Qdrant:       http://{ip}:6333/dashboard{' ' * (39 - len(ip))}│")
+                click.echo(f"│     FalkorDB:     http://{ip}:3001{' ' * (47 - len(ip))}│")
+                click.echo(f"│     RedisInsight: http://{ip}:5540{' ' * (46 - len(ip))}│")
+                click.echo(f"│     pgAdmin:      http://{ip}:5050{' ' * (47 - len(ip))}│")
+                click.echo(f"│     Grafana:      http://{ip}:3000{' ' * (47 - len(ip))}│")
+
+            click.echo("└──────────────────────────────────────────────────────────────────────────┘")
+
     click.echo("")
     click.echo("┌──────────────────────────────────────────────────────────────────────────┐")
     click.echo("│  💡 COMANDOS RÁPIDOS                                                     │")

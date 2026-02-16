@@ -222,6 +222,22 @@ def run_agent(name: str, args: str):
             result = await agent.research(topics)
             click.echo(f"✅ Research complete: {result['output_dir']}")
 
+        elif name == "deleter":
+            from agents.deleter import DeleterAgent
+            agent = DeleterAgent(memory)
+            count = await agent.count()
+            if args == "all":
+                click.echo(f"⚠️  Deleting ALL {count} memories...")
+                result = await agent.delete_all(confirm=True)
+                click.echo(f"✅ Deleted: {result.get('qdrant_deleted', 0)} memories")
+            elif args:
+                click.echo(f"🔍 Deleting memories matching '{args}'...")
+                result = await agent.delete_by_query(args)
+                click.echo(f"✅ Deleted: {result.get('deleted', 0)} memories")
+            else:
+                click.echo(f"📊 Total memories: {count}")
+                click.echo("💡 Use 'deleter all' to delete all, or 'deleter <query>' to delete by search")
+
         else:
             # Try custom agent
             custom_agents = settings.get("agents.custom", {})
