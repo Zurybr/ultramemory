@@ -41,6 +41,7 @@ class DeleterAgent:
         result = {
             "status": "success",
             "qdrant_deleted": 0,
+            "falkordb_deleted": 0,
             "errors": [],
         }
 
@@ -49,10 +50,24 @@ class DeleterAgent:
             deleted = await self.memory.qdrant.delete_all()
             result["qdrant_deleted"] = deleted if deleted else count_before
 
+            # Delete all from FalkorDB
+            try:
+                if hasattr(self.memory, 'falkordb'):
+                    # Get all nodes and delete them
+                    nodes = await self.memory.falkordb.get_all_nodes(limit=10000)
+                    for node in nodes:
+                        node_id = node.get("id", "")
+                        if node_id:
+                            await self.memory.falkordb.execute(f"MATCH (n {{id: '{node_id}'}}) DETACH DELETE n")
+                    result["falkordb_deleted"] = len(nodes)
+            except Exception as e:
+                result["errors"].append(f"FalkorDB: {str(e)}")
+
             # Log the deletion
             await self._log_deletion({
                 "type": "delete_all",
-                "count": result["qdrant_deleted"],
+                "qdrant_count": result["qdrant_deleted"],
+                "falkordb_count": result["falkordb_deleted"],
                 "timestamp": datetime.now().isoformat(),
             })
 
@@ -68,7 +83,7 @@ class DeleterAgent:
             except Exception:
                 result["graph_cleared"] = False
 
-            result["message"] = f"Deleted {result['qdrant_deleted']} memories"
+            result["message"] = f"Deleted {result['qdrant_deleted']} Qdrant, {result['falkordb_deleted']} FalkorDB"
 
         except Exception as e:
             result["status"] = "error"
@@ -77,7 +92,7 @@ class DeleterAgent:
         return result
 
     async def delete_by_query(self, query: str, limit: int = 100, preserve_connections: bool = True) -> dict[str, Any]:
-        """Delete memories matching a semantic query.
+        """Delete memories matching a query from both Qdrant and FalkorDB.
 
         Args:
             query: Search query to find memories to delete
@@ -90,43 +105,66 @@ class DeleterAgent:
         result = {
             "status": "success",
             "query": query,
-            "deleted": 0,
+            "qdrant_deleted": 0,
+            "falkordb_deleted": 0,
             "preserved_connections": 0,
             "errors": [],
         }
 
         try:
-            # Search for memories
-            results = await self.memory.qdrant.search(
-                query_embedding=await self.memory.embedding.embed(query),
-                limit=limit,
-            )
+            # Search for memories in both stores
+            search_results = await self.memory.query(query, limit=limit)
+
+            # Get IDs from vector results (Qdrant)
+            vector_ids = [r.get("id", "") for r in search_results.get("vector_results", [])]
+
+            # Get IDs from graph results (FalkorDB)
+            graph_ids = [r.get("id", "") for r in search_results.get("graph_results", [])]
+
+            # Combine and dedupe
+            all_ids = list(set(vector_ids + graph_ids))[:limit]
 
             # Delete each found memory
-            for item in results:
+            for memory_id in all_ids:
+                if not memory_id:
+                    continue
+
                 try:
                     # Check for connections if preservation is enabled
                     if preserve_connections:
-                        has_connections = await self._check_connections(item["id"])
+                        has_connections = await self._check_connections(memory_id)
                         if has_connections:
                             result["preserved_connections"] += 1
                             continue  # Skip deletion
 
-                    await self.memory.qdrant.delete(item["id"])
-                    result["deleted"] += 1
+                    # Delete from Qdrant
+                    try:
+                        await self.memory.qdrant.delete(memory_id)
+                        result["qdrant_deleted"] += 1
+                    except Exception:
+                        pass
+
+                    # Delete from FalkorDB
+                    try:
+                        if hasattr(self.memory, 'falkordb'):
+                            await self.memory.falkordb.execute(f"MATCH (n {{id: '{memory_id}'}}) DETACH DELETE n")
+                            result["falkordb_deleted"] += 1
+                    except Exception:
+                        pass
 
                     # Log the deletion
                     await self._log_deletion({
                         "type": "delete_by_query",
                         "query": query,
-                        "deleted_id": item["id"],
+                        "deleted_id": memory_id,
                         "timestamp": datetime.now().isoformat(),
                     })
 
                 except Exception as e:
-                    result["errors"].append(f"Failed to delete {item['id']}: {e}")
+                    result["errors"].append(f"Failed to delete {memory_id}: {e}")
 
-            result["message"] = f"Deleted {result['deleted']} memories matching '{query}'"
+            result["deleted"] = result["qdrant_deleted"] + result["falkordb_deleted"]
+            result["message"] = f"Deleted {result['qdrant_deleted']} Qdrant, {result['falkordb_deleted']} FalkorDB"
 
         except Exception as e:
             result["status"] = "error"
@@ -135,7 +173,7 @@ class DeleterAgent:
         return result
 
     async def delete_by_id(self, memory_id: str, preserve_connections: bool = True) -> dict[str, Any]:
-        """Delete a specific memory by ID.
+        """Delete a specific memory by ID from both Qdrant and FalkorDB.
 
         Args:
             memory_id: The ID of the memory to delete
@@ -147,7 +185,8 @@ class DeleterAgent:
         result = {
             "status": "success",
             "id": memory_id,
-            "deleted": False,
+            "qdrant_deleted": False,
+            "falkordb_deleted": False,
         }
 
         try:
@@ -158,17 +197,32 @@ class DeleterAgent:
                     result["message"] = f"Memory {memory_id} has connections. Use force=True to delete anyway."
                     return result
 
-            await self.memory.qdrant.delete(memory_id)
-            result["deleted"] = True
+            # Delete from Qdrant
+            try:
+                await self.memory.qdrant.delete(memory_id)
+                result["qdrant_deleted"] = True
+            except Exception as e:
+                result["qdrant_error"] = str(e)
+
+            # Delete from FalkorDB
+            try:
+                if hasattr(self.memory, 'falkordb'):
+                    await self.memory.falkordb.execute(f"MATCH (n {{id: '{memory_id}'}}) DETACH DELETE n")
+                    result["falkordb_deleted"] = True
+            except Exception as e:
+                result["falkordb_error"] = str(e)
 
             # Log the deletion
             await self._log_deletion({
                 "type": "delete_by_id",
                 "deleted_id": memory_id,
+                "qdrant": result["qdrant_deleted"],
+                "falkordb": result["falkordb_deleted"],
                 "timestamp": datetime.now().isoformat(),
             })
 
-            result["message"] = f"Memory {memory_id} deleted"
+            result["deleted"] = result["qdrant_deleted"] or result["falkordb_deleted"]
+            result["message"] = f"Memory {memory_id} deleted from Qdrant:{result['qdrant_deleted']}, FalkorDB:{result['falkordb_deleted']}"
 
         except Exception as e:
             result["status"] = "error"
@@ -216,11 +270,24 @@ class DeleterAgent:
         }
 
     async def _check_connections(self, memory_id: str) -> bool:
-        """Check if memory has graph connections."""
+        """Check if memory has graph connections in FalkorDB."""
         try:
-            # Try graphiti connection check
-            result = await self.memory.graphiti.get_neighbors(memory_id)
-            return len(result) > 0
+            # Check FalkorDB first
+            if hasattr(self.memory, 'falkordb'):
+                try:
+                    result = await self.memory.falkordb.get_node_relationships(memory_id)
+                    if result and len(result) > 0:
+                        return True
+                except Exception:
+                    pass
+
+            # Fallback to graphiti
+            try:
+                result = await self.memory.graphiti.get_neighbors(memory_id)
+                return len(result) > 0
+            except Exception:
+                return False
+
         except Exception:
             return False
 

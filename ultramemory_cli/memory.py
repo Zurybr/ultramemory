@@ -38,10 +38,17 @@ def add_command(content: str, metadata: tuple):
         memory = MemorySystem()
         librarian = LibrarianAgent(memory)
 
-        path = Path(content)
-        if path.exists():
-            result = await librarian.add(path, meta)
-        else:
+        # Check if content is a valid file path (but handle very long texts gracefully)
+        try:
+            path = Path(content)
+            # Only treat as file if it exists AND path length is reasonable (< 500 chars)
+            # This prevents "File name too long" errors with long text content
+            if path.exists() and len(content) < 500:
+                result = await librarian.add(path, meta)
+            else:
+                result = await librarian.add(content, meta)
+        except (OSError, ValueError):
+            # If Path() fails for any reason (long filenames, special chars, etc.), treat as text
             result = await librarian.add(content, meta)
 
         click.echo(f"Added: {result['chunks_created']} chunks created")
@@ -94,12 +101,30 @@ def consolidate_command():
         )
 
         if needs_consolidation:
-            click.echo(f"\n🧹 Running consolidation...")
+            click.echo(f"\n🧹 Running DEEP consolidation...")
             result = await consolidator.consolidate()
 
             click.echo(f"\n✅ Consolidation complete:")
             click.echo(f"   Duplicates removed: {result.get('duplicates_removed', 0)}")
             click.echo(f"   Malformed entries fixed: {result.get('malformed_fixed', 0)}")
+            click.echo(f"   Graph nodes synced: {result.get('nodes_synced', 0)}")
+            click.echo(f"   Graph links created: {result.get('links_created', 0)}")
+            click.echo(f"   Insights generated: {result.get('insights_generated', 0)}")
+
+            # Show graph insights
+            graph_insights = result.get('graph_insights', [])
+            if graph_insights:
+                click.echo(f"\n🔗 Graph Insights:")
+                for insight in graph_insights:
+                    click.echo(f"   • {insight}")
+
+            # Show summary if available
+            summary = result.get('analysis_summary', {})
+            if summary:
+                click.echo(f"\n📊 Analysis Summary:")
+                click.echo(f"   Total docs: {summary.get('total_docs', 'N/A')}")
+                click.echo(f"   Graph nodes: {summary.get('graph_nodes', 'N/A')}")
+                click.echo(f"   Graph relations: {summary.get('graph_relations', 'N/A')}")
 
             if result.get('errors'):
                 click.echo(f"   ⚠️  Errors: {result.get('errors')}")

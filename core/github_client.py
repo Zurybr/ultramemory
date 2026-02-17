@@ -47,6 +47,8 @@ SUPPORTED_EXTENSIONS = {
     ".dsr", ".dca", ".dsx",  # VB6 Data Report
     ".vbp", ".vbg", ".vbw",  # VB6 Project
     ".ocx",  # VB6 ActiveX Controls
+    ".OBJ",  # VB6 Form compiled binary (contains form data)
+    ".frx",  # VB6 Form binary
     # Pascal/Delphi
     ".pas", ".dpk", ".dpr",
     # Other languages
@@ -108,6 +110,7 @@ EXTENSION_TO_LANGUAGE = {
     ".dsr": "VB Data Report", ".dca": "VB Data Report", ".dsx": "VB Data Report",
     ".vbp": "VB Project", ".vbg": "VB Project Group", ".vbw": "VB Workspace",
     ".ocx": "VB ActiveX Control",
+    ".OBJ": "VB6 Form Binary", ".frx": "VB6 Form Binary",
     ".pas": "Pascal", ".dpk": "Delphi Package", ".dpr": "Delphi Project",
     # Legacy/Enterprise languages
     ".adb": "Ada", ".ads": "Ada", ".ada": "Ada",
@@ -358,7 +361,77 @@ class GitHubClient:
             File content as string
         """
         with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
-            return f.read()
+            content = f.read()
+
+        # Filter binary content for VB6 files
+        if file_path.suffix.lower() in {".frm", ".dsr", ".dca", ".dsx"}:
+            content = self._filter_vb6_binary_content(content)
+
+        return content
+
+    def _filter_vb6_binary_content(self, content: str) -> str:
+        """Filter binary content from VB6 files.
+
+        VB6 files (.frm, .dsr, .dca, .dsx) contain embedded binary data
+        that interferes with semantic search. This method extracts
+        only the readable VB6 source code.
+
+        Args:
+            content: Raw file content
+
+        Returns:
+            Filtered content with only readable VB6 code
+        """
+        import re
+
+        lines = content.split('\n')
+        filtered_lines = []
+
+        for line in lines:
+            # Skip empty lines
+            if not line.strip():
+                filtered_lines.append(line)
+                continue
+
+            # Remove all non-ASCII characters and keep only printable ASCII
+            cleaned_line = ''.join(
+                c for c in line
+                if ord(c) < 128 and (ord(c) >= 32 or c in '\r\n\t')
+            )
+
+            # Skip lines that became empty after cleaning
+            if not cleaned_line.strip():
+                continue
+
+            # Keep lines that are valid VB6 code patterns
+            # VB6 forms: VERSION, Begin VB.Form, Begin {GUID}
+            # VB properties: PropertyName = Value
+            # VB code: Private Sub, Public Function, etc.
+            if (cleaned_line.startswith('VERSION') or
+                cleaned_line.startswith('Begin ') or
+                cleaned_line.startswith('End ') or
+                cleaned_line.startswith('Attribute') or
+                cleaned_line.startswith('Option ') or
+                cleaned_line.startswith('Private ') or
+                cleaned_line.startswith('Public ') or
+                cleaned_line.startswith('EndProperty') or
+                cleaned_line.startswith('BeginProperty') or
+                re.match(r'^\s+\w+\s*=', cleaned_line) or  # Property assignments
+                re.match(r'^\s+\w+\s+\w+\s*=', cleaned_line) or  # Control declarations
+                re.match(r'^\s+\{[\w-]+\}', cleaned_line)):  # GUID declarations
+                filtered_lines.append(cleaned_line)
+
+        # If we filtered too much, include form metadata (Caption, ClientWidth, etc.)
+        if len(filtered_lines) < 5:
+            for line in lines:
+                cleaned = ''.join(
+                    c for c in line
+                    if ord(c) < 128 and (ord(c) >= 32 or c in '\r\n\t')
+                )
+                if cleaned.strip() and ('Caption' in cleaned or 'Height' in cleaned or 'Width' in cleaned):
+                    filtered_lines.append(cleaned)
+
+        return '\n'.join(filtered_lines)
 
     def get_file_history(
         self,
