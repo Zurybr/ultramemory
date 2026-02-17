@@ -388,48 +388,52 @@ class GitHubClient:
         filtered_lines = []
 
         for line in lines:
+            # Remove all non-ASCII characters completely
+            ascii_only = ''.join(c for c in line if ord(c) < 128)
+
             # Skip empty lines
-            if not line.strip():
-                filtered_lines.append(line)
+            if not ascii_only.strip():
                 continue
 
-            # Remove all non-ASCII characters and keep only printable ASCII
-            cleaned_line = ''.join(
-                c for c in line
-                if ord(c) < 128 and (ord(c) >= 32 or c in '\r\n\t')
-            )
-
-            # Skip lines that became empty after cleaning
-            if not cleaned_line.strip():
+            # Skip lines that are now empty after removing non-ASCII
+            if len(ascii_only.strip()) == 0:
                 continue
 
-            # Keep lines that are valid VB6 code patterns
+            # Keep only lines that are valid VB6 code patterns
             # VB6 forms: VERSION, Begin VB.Form, Begin {GUID}
             # VB properties: PropertyName = Value
             # VB code: Private Sub, Public Function, etc.
-            if (cleaned_line.startswith('VERSION') or
-                cleaned_line.startswith('Begin ') or
-                cleaned_line.startswith('End ') or
-                cleaned_line.startswith('Attribute') or
-                cleaned_line.startswith('Option ') or
-                cleaned_line.startswith('Private ') or
-                cleaned_line.startswith('Public ') or
-                cleaned_line.startswith('EndProperty') or
-                cleaned_line.startswith('BeginProperty') or
-                re.match(r'^\s+\w+\s*=', cleaned_line) or  # Property assignments
-                re.match(r'^\s+\w+\s+\w+\s*=', cleaned_line) or  # Control declarations
-                re.match(r'^\s+\{[\w-]+\}', cleaned_line)):  # GUID declarations
-                filtered_lines.append(cleaned_line)
+            if (ascii_only.startswith('VERSION') or
+                ascii_only.startswith('Begin VB.') or
+                ascii_only.startswith('Begin {') or
+                ascii_only.startswith('End') or
+                ascii_only.startswith('Attribute') or
+                ascii_only.startswith('Option ') or
+                ascii_only.startswith('Private ') or
+                ascii_only.startswith('Public ') or
+                ascii_only.startswith('EndProperty') or
+                ascii_only.startswith('BeginProperty') or
+                # Property assignments like "Caption = " or "Height = "
+                re.match(r'^\s+\w+\s*=\s*.', ascii_only) or
+                # GUID patterns like "{78E93846-85FD-11D0-8487-00A0C90DC8A9}"
+                re.match(r'^\s*\{[\w-]+\}', ascii_only)):
+                filtered_lines.append(ascii_only)
 
-        # If we filtered too much, include form metadata (Caption, ClientWidth, etc.)
-        if len(filtered_lines) < 5:
+        # If we filtered too much (less than 3 lines), extract form metadata
+        if len(filtered_lines) < 3:
+            metadata_lines = []
             for line in lines:
-                cleaned = ''.join(
-                    c for c in line
-                    if ord(c) < 128 and (ord(c) >= 32 or c in '\r\n\t')
-                )
-                if cleaned.strip() and ('Caption' in cleaned or 'Height' in cleaned or 'Width' in cleaned):
-                    filtered_lines.append(cleaned)
+                ascii_only = ''.join(c for c in line if ord(c) < 128)
+                if ascii_only.strip() and (
+                    'Caption' in ascii_only or
+                    'Height' in ascii_only or
+                    'Width' in ascii_only or
+                    'Top' in ascii_only or
+                    'Left' in ascii_only or
+                    'TabIndex' in ascii_only
+                ):
+                    metadata_lines.append(ascii_only)
+            filtered_lines = metadata_lines[:20]  # Limit to 20 metadata lines
 
         return '\n'.join(filtered_lines)
 

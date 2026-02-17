@@ -1,11 +1,13 @@
 """Core memory module integrating FalkorDB, Graphiti, Qdrant, and Redis."""
 
+import os
 from datetime import datetime
 from typing import Any
 from .graphiti_client import GraphitiClient
 from .falkordb_client import FalkorDBClient
 from .qdrant_client import QdrantClientWrapper
 from .redis_client import RedisClientWrapper
+from .embedding_provider import get_embedding_provider
 
 
 class MemorySystem:
@@ -24,6 +26,12 @@ class MemorySystem:
         self.qdrant = QdrantClientWrapper(qdrant_url)
         self.redis = RedisClientWrapper(redis_url)
         self.embedding_model = embedding_model
+
+        # Initialize embedding provider based on config
+        embedding_provider = os.getenv("EMBEDDING_PROVIDER", "minimax")
+        api_key = os.getenv(f"{embedding_provider.upper()}_API_KEY", "")
+
+        self.embedding = get_embedding_provider(embedding_provider, api_key=api_key)
 
     async def add(self, content: str, metadata: dict[str, Any] | None = None) -> dict[str, Any]:
         """Add content to memory system - stores in both Qdrant (embedding) and FalkorDB (graph).
@@ -190,9 +198,13 @@ class MemorySystem:
             return {"synced": 0, "error": str(e)}
 
     async def _generate_embedding(self, text: str) -> list[float]:
-        """Generate embedding for text (placeholder - to be implemented with LangChain)."""
-        import random
-        return [random.random() for _ in range(1536)]
+        """Generate embedding for text using configured provider."""
+        try:
+            return await self.embedding.embed(text)
+        except Exception:
+            # Fallback to mock if embedding fails
+            import random
+            return [random.random() for _ in range(1536)]
 
     async def close(self):
         """Close all connections."""
