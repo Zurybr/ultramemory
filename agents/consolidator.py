@@ -359,25 +359,63 @@ class ConsolidatorAgent:
                 if not health:
                     return result
 
-                # Phase 1: Sync Qdrant docs to FalkorDB if needed
-                qdrant_docs = await self.memory.qdrant.get_all(limit=10000)
-                falkordb_nodes = await self.memory.falkordb.get_all_nodes(limit=10000)
+                # COMPREHENSIVE SYNC - Loop until fully synchronized
+                max_attempts = 5
+                for attempt in range(max_attempts):
+                    # Get accurate counts via Cypher
+                    qdrant_count = await self.memory.qdrant.count()
+                    falkordb_result = await self.memory.falkordb.execute("MATCH (n) RETURN count(n) as count")
+                    falkordb_count = falkordb_result[0].get("count", 0) if falkordb_result else 0
 
-                if len(qdrant_docs) > len(falkordb_nodes):
+                    # Get all IDs from both stores
+                    qdrant_docs = await self.memory.qdrant.get_all(limit=10000)
+                    qdrant_ids = {doc.get("id", "") for doc in qdrant_docs}
+
+                    falkordb_result = await self.memory.falkordb.execute("MATCH (n) RETURN n.id as id")
+                    falkordb_ids = {row.get("id", "") for row in falkordb_result if row.get("id")}
+
+                    # Find missing and orphans
+                    missing = qdrant_ids - falkordb_ids  # In Qdrant but not FalkorDB
+                    orphans = falkordb_ids - qdrant_ids  # In FalkorDB but not Qdrant
+
+                    if not missing and not orphans:
+                        result["sync_status"] = "complete"
+                        break  # Fully synchronized
+
+                    result["sync_attempts"] = attempt + 1
+
+                    # Delete orphans first
+                    if orphans:
+                        for orphan_id in list(orphans):
+                            try:
+                                await self.memory.falkordb.execute(f"MATCH (n {{id: '{orphan_id}'}}) DETACH DELETE n")
+                                result["orphans_removed"] = result.get("orphans_removed", 0) + 1
+                            except Exception:
+                                pass
+
                     # Sync missing nodes
-                    for doc in qdrant_docs:
-                        doc_id = doc.get("id", "")
-                        content = doc.get("content", "")
-                        metadata = doc.get("metadata", {})
+                    if missing:
+                        for doc in qdrant_docs:
+                            doc_id = doc.get("id", "")
+                            if doc_id in missing:
+                                content = doc.get("content", "")
+                                metadata = doc.get("metadata", {})
 
-                        existing = await self.memory.falkordb.get_node(doc_id)
-                        if not existing:
-                            await self.memory.falkordb.add_node(
-                                entity_id=doc_id,
-                                content=content,
-                                metadata=metadata
-                            )
-                            result["nodes_synced"] += 1
+                                success = await self.memory.falkordb.add_node(
+                                    entity_id=doc_id,
+                                    content=content,
+                                    metadata=metadata
+                                )
+                                if success:
+                                    result["nodes_synced"] = result.get("nodes_synced", 0) + 1
+
+                    # Check if we're done
+                    falkordb_result = await self.memory.falkordb.execute("MATCH (n) RETURN count(n) as count")
+                    falkordb_count = falkordb_result[0].get("count", 0) if falkordb_result else 0
+
+                    if qdrant_count == falkordb_count:
+                        result["sync_status"] = "complete"
+                        break
 
                 # Phase 2: Create relationships between similar nodes
                 link_result = await self.memory.falkordb.create_entity_links()
