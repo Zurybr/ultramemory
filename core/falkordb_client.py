@@ -56,15 +56,34 @@ class FalkorDBClient:
     ) -> bool:
         """Add a node to the graph with metadata."""
         try:
+            # Skip binary content - can't store in graph
+            if self._is_binary_content(content):
+                # Still create node but with placeholder content
+                content_preview = "[Binary content - not stored in graph]"
+            else:
+                # Clean content for graph storage (truncate if too long)
+                # Remove control characters and escape properly
+                clean_chars = []
+                for char in content[:500]:
+                    code = ord(char)
+                    if code < 32 and code not in (9, 10, 13):  # Keep tab, newline, carriage return
+                        clean_chars.append(' ')  # Replace control chars with space
+                    elif code > 127:
+                        clean_chars.append('?')  # Replace non-ASCII with ?
+                    else:
+                        clean_chars.append(char)
+                content_preview = ''.join(clean_chars)
+                content_preview = content_preview.replace("\\", "\\\\").replace("'", "\\'").replace('"', '\\"').replace("\n", "\\n").replace("\r", "")
+
             # Extract labels from metadata or use defaults
-            labels = labels or metadata.get("labels", ["Document"])
+            if labels is None:
+                labels = metadata.get("labels", ["Document"])
             if isinstance(labels, str):
                 labels = [labels]
+            if not labels:
+                labels = ["Document"]
 
-            # Clean content for graph storage (truncate if too long)
-            content_preview = content[:500].replace("'", "\\'").replace('"', '\\"')
-
-            # Build Cypher query
+            # Build Cypher query using MERGE instead of CREATE
             label_str = ":".join(labels)
             props = {
                 "id": entity_id,
@@ -74,18 +93,64 @@ class FalkorDBClient:
                 "created_at": metadata.get("created_at", ""),
             }
 
-            # Add extracted keywords as properties
-            keywords = self._extract_keywords(content)
+            # Add extracted keywords for non-binary content
+            keywords = []
+            if not self._is_binary_content(content):
+                keywords = self._extract_keywords(content)
             if keywords:
                 props["keywords"] = ",".join(keywords[:10])
 
-            props_str = ", ".join(f'{k}:"{v}"' for k, v in props.items())
+            # Build safe property string
+            props_list = []
+            for k, v in props.items():
+                # Escape special characters
+                v_str = str(v).replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n")
+                props_list.append(f'{k}:"{v_str}"')
+            props_str = ", ".join(props_list)
 
-            query = f"CREATE (n:{label_str} {{{props_str}}})"
-            await self.execute(query)
+            query = f"MERGE (n:{label_str} {{{props_str}}})"
+            result = await self.execute(query)
             return True
         except Exception:
             return False
+
+    def _is_binary_content(self, content: str) -> bool:
+        """Check if content appears to be binary."""
+        if not content:
+            return False
+
+        # Check first 1000 characters for binary indicators
+        sample = content[:1000]
+
+        # Check for null bytes
+        if '\\x00' in sample or '\\0' in sample:
+            return True
+
+        # Check for high proportion of non-printable/non-ASCII characters
+        try:
+            # Count non-ASCII and control characters
+            non_printable = 0
+            for char in sample:
+                code = ord(char)
+                # Control chars (0-31 except \t, \n, \r) and non-ASCII (>127)
+                if code < 32 and code not in (9, 10, 13):  # not tab, newline, carriage return
+                    non_printable += 1
+                elif code > 127:
+                    non_printable += 1
+
+            # If more than 10% are non-printable, treat as binary
+            if len(sample) > 0 and non_printable / len(sample) > 0.1:
+                return True
+        except Exception:
+            pass
+
+        # Check for common binary file signatures
+        binary_headers = ['MZ', 'PK\\x03\\x04', '\\xff\\xd8\\xff', 'GIF87', 'GIF89', '%PDF', '\\x89PNG']
+        for header in binary_headers:
+            if sample.startswith(header):
+                return True
+
+        return False
 
     async def add_relationship(
         self,

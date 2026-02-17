@@ -360,8 +360,8 @@ class ConsolidatorAgent:
                     return result
 
                 # Phase 1: Sync Qdrant docs to FalkorDB if needed
-                qdrant_docs = await self.memory.qdrant.get_all(limit=1000)
-                falkordb_nodes = await self.memory.falkordb.get_all_nodes(limit=1000)
+                qdrant_docs = await self.memory.qdrant.get_all(limit=10000)
+                falkordb_nodes = await self.memory.falkordb.get_all_nodes(limit=10000)
 
                 if len(qdrant_docs) > len(falkordb_nodes):
                     # Sync missing nodes

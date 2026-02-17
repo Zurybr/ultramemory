@@ -22,6 +22,31 @@ class CodeIndexerAgent:
         self.github = GitHubClient()
         self.codewiki = CodeWikiTool()
 
+    def _extract_vb6_metadata(self, content: str) -> dict | None:
+        """Extract form name and caption from VB6 form content.
+
+        Args:
+            content: Filtered VB6 form content
+
+        Returns:
+            Dictionary with form_name and caption, or None
+        """
+        import re
+
+        result = {}
+
+        # Extract form name: "Begin VB.Form formName"
+        form_match = re.search(r'Begin VB\.Form\s+(\w+)', content)
+        if form_match:
+            result["form_name"] = form_match.group(1)
+
+        # Extract caption: 'Caption = "some text"' or Caption = "some text"
+        caption_match = re.search(r'Caption\s*=\s*"([^"]*)"', content)
+        if caption_match:
+            result["caption"] = caption_match.group(1)
+
+        return result if result else None
+
     async def index(
         self,
         repo_url: str,
@@ -180,6 +205,16 @@ class CodeIndexerAgent:
             "category": category,
             "indexed_at": datetime.now(timezone.utc).isoformat()
         }
+
+        # Extract VB6 form name if applicable
+        if file_path.suffix.lower() == ".frm":
+            vb6_info = self._extract_vb6_metadata(content)
+            if vb6_info:
+                metadata["vb6_form_name"] = vb6_info.get("form_name")
+                metadata["vb6_caption"] = vb6_info.get("caption")
+                # Also prepend to content for better searchability
+                if vb6_info.get("form_name"):
+                    content = f"FORMULARIO: {vb6_info['form_name']}\nCAPTION: {vb6_info.get('caption', '')}\n\n{content}"
 
         # Add to memory
         doc_id = await self.memory.add(content, metadata)
