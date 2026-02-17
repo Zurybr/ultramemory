@@ -1,5 +1,8 @@
 # Ultramemory CLI Installer for Windows PowerShell
-# Run with: powershell -ExecutionPolicy Bypass -File install-cli.ps1
+# Run with: powershell -ExecutionPolicy Bypass -File install-cli.ps1 -ServerIP "100.112.175.25"
+param(
+    [string]$ServerIP = ""  # IP del servidor remoto. Si está vacío, usa localhost
+)
 
 $ErrorActionPreference = "Stop"
 
@@ -75,17 +78,22 @@ try {
 # Create default settings if not exists
 $settingsFile = "$configDir\settings.json"
 if (-not (Test-Path $settingsFile)) {
+    # Determine service URLs based on server IP
+    $servicePrefix = if ($ServerIP) { "http://$ServerIP" } else { "http://localhost" }
+    $redisHost = if ($ServerIP) { $ServerIP } else { "localhost" }
+    $falkordbHost = if ($ServerIP) { $ServerIP } else { "localhost" }
+
     $settingsJson = @{
-        mode = "local"
+        mode = if ($ServerIP) { "remote" } else { "local" }
         services = @{
-            api = "http://localhost:8000"
-            graphiti = "http://localhost:8001"
-            qdrant = "http://localhost:6333"
-            redis = "localhost:6379"
-            falkordb = "localhost:6370"
-            postgres = "localhost:5432"
-            grafana = "http://localhost:3000"
-            prometheus = "http://localhost:9090"
+            api = "$servicePrefix:8000"
+            graphiti = "$servicePrefix:8001"
+            qdrant = "$servicePrefix:6333"
+            redis = "$redisHost:6379"
+            falkordb = "$falkordbHost:6370"
+            postgres = "$redisHost:5432"
+            grafana = "$servicePrefix:3000"
+            prometheus = "$servicePrefix:9090"
         }
         credentials = @{
             postgres = @{ user = "postgres"; pass = "postgres" }
@@ -101,8 +109,60 @@ if (-not (Test-Path $settingsFile)) {
     }
 
     $settingsJson | ConvertTo-Json -Depth 10 | Set-Content -Path $settingsFile -Encoding UTF8
-    Write-Host "Default settings created at $settingsFile"
+    Write-Host "Default settings created at $settingsFile" -ForegroundColor Green
+} else {
+    Write-Host "Using existing settings at $settingsFile" -ForegroundColor Yellow
 }
+
+# Create config.yaml for CLI
+$configYaml = "$env:USERPROFILE\.config\ultramemory\config.yaml"
+$configYamlDir = Split-Path -Parent $configYaml
+if (-not (Test-Path $configYamlDir)) {
+    New-Item -ItemType Directory -Path $configYamlDir -Force | Out-Null
+}
+
+$servicePrefix = if ($ServerIP) { "http://$ServerIP" } else { "http://localhost" }
+$redisHost = if ($ServerIP) { $ServerIP } else { "localhost" }
+
+$yamlContent = @"
+# Ultramemory Configuration
+# Created: $(Get-Date -Format "yyyy-MM-dd")
+
+# LLM Configuration
+llm:
+  default_provider: "minimax"
+  providers:
+    openai:
+      api_key: ""
+      model: "gpt-4o"
+    google:
+      api_key: ""
+      model: "gemini-1.5-flash"
+    minimax:
+      api_key: ""
+      model: "MiniMax-Text-01"
+
+# Service URLs
+services:
+  qdrant:
+    url: "$servicePrefix`:6333"
+    api_key: ""
+  redis:
+    host: "$redisHost"
+    port: 6379
+    password: ""
+  falkordb:
+    host: "$redisHost"
+    port: 6370
+
+# API Settings
+api:
+  base_url: "$servicePrefix`:8000"
+  api_key: ""
+"@
+
+$yamlContent | Set-Content -Path $configYaml -Encoding UTF8
+Write-Host "Config created at $configYaml" -ForegroundColor Green
 
 # Create wrapper script for easy access
 Write-Host "Creating wrapper script..."
