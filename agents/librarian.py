@@ -2,6 +2,8 @@
 
 import json
 import mimetypes
+import hashlib
+from datetime import datetime
 from typing import Any
 from pathlib import Path
 
@@ -18,7 +20,22 @@ class LibrarianAgent:
     - Images (jpg, png, gif) - extracts EXIF metadata
     - URLs - fetches and processes content
     - Videos (mp4, webm) - extracts metadata
+
+    Enhanced with:
+    - Automatic metadata extraction (title, description, tags)
+    - File metadata extraction (size, dates, author)
+    - Title extraction from content
+    - Better URL metadata
     """
+
+    # Common title patterns
+    TITLE_PATTERNS = [
+        r'^#\s+(.+)$',           # Markdown H1
+        r'^##\s+(.+)$',          # Markdown H2
+        r'^(.+)\n[=-]{3,}',      # Title with underline
+        r'<title>(.+?)</title>', # HTML title
+        r'<h1>(.+?)</h1>',       # HTML H1
+    ]
 
     def __init__(self, memory_system: MemorySystem):
         self.memory = memory_system
@@ -26,6 +43,8 @@ class LibrarianAgent:
 
     async def add(self, content: str | Path, metadata: dict[str, Any] | None = None) -> dict[str, Any]:
         """Add content to memory.
+
+        Enhanced with automatic metadata extraction from files and URLs.
 
         Args:
             content: Text, file path, URL, or Path object
@@ -43,20 +62,30 @@ class LibrarianAgent:
         # 3. Determine content type for metadata
         content_type = self._detect_content_type(content)
 
-        # 4. Add each chunk to memory
+        # 4. Extract automatic metadata
+        base_metadata = self._extract_automatic_metadata(
+            content,
+            processed["text"],
+            processed.get("metadata", {})
+        )
+
+        # 5. Merge with user-provided metadata
+        final_metadata = {**base_metadata, **(metadata or {})}
+
+        # 6. Add each chunk to memory
         results = []
         for i, chunk in enumerate(chunks):
-            doc_id = await self.memory.add(
-                chunk,
-                metadata={
-                    **(metadata or {}),
-                    "source": str(content),
-                    "chunk_index": i,
-                    "total_chunks": len(chunks),
-                    "content_type": content_type,
-                    "agent": "librarian_insert",
-                },
-            )
+            # Add chunk-specific metadata
+            chunk_metadata = {
+                **final_metadata,
+                "source": str(content),
+                "chunk_index": i,
+                "total_chunks": len(chunks),
+                "content_type": content_type,
+                "agent": "librarian_insert",
+            }
+
+            doc_id = await self.memory.add(chunk, metadata=chunk_metadata)
             results.append({"chunk": i + 1, "doc_id": doc_id})
 
         return {
@@ -64,7 +93,207 @@ class LibrarianAgent:
             "chunks_created": len(chunks),
             "document_id": results[0]["doc_id"] if results else None,
             "content_type": content_type,
+            "metadata_extracted": True,
         }
+
+    def _extract_automatic_metadata(
+        self,
+        content: str | Path,
+        text: str,
+        processed_metadata: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Extract automatic metadata from content.
+
+        Extracts:
+        - title: From file name, URL, or content
+        - description: First meaningful lines
+        - tags: From content analysis
+        - file_metadata: For files (size, dates)
+        - url_metadata: For URLs
+
+        Args:
+            content: Original content (path or URL)
+            text: Processed text content
+            processed_metadata: Metadata from document processor
+
+        Returns:
+            Dictionary with automatic metadata
+        """
+        metadata = {}
+
+        # Extract title
+        title = self._extract_title(text, content)
+        if title:
+            metadata["title"] = title
+
+        # Extract description (first non-empty lines)
+        if text:
+            lines = [l.strip() for l in text.split('\n') if l.strip()]
+            if lines:
+                # Use first meaningful line as description
+                desc = lines[0][:200]
+                if len(lines) > 1:
+                    desc += " " + lines[1][:100]
+                metadata["description"] = desc
+
+        # Extract tags from content
+        tags = self._extract_tags(text)
+        if tags:
+            metadata["tags"] = tags
+
+        # Add file metadata if available
+        if isinstance(content, Path) and content.exists():
+            file_meta = self._extract_file_metadata(content)
+            metadata.update(file_meta)
+
+        # Add URL metadata
+        if isinstance(content, str) and content.startswith(("http://", "https://")):
+            url_meta = self._extract_url_metadata(content)
+            metadata.update(url_meta)
+
+        # Merge with processed metadata
+        if processed_metadata:
+            metadata = {**metadata, **processed_metadata}
+
+        return metadata
+
+    def _extract_title(self, text: str, content: str | Path) -> str | None:
+        """Extract title from content.
+
+        Args:
+            text: Text content
+            content: Original content
+
+        Returns:
+            Extracted title or None
+        """
+        # Try content-based title extraction
+        import re
+
+        for pattern in self.TITLE_PATTERNS:
+            match = re.search(pattern, text, re.MULTILINE)
+            if match:
+                return match.group(1).strip()
+
+        # Fall back to filename
+        if isinstance(content, Path):
+            # Use stem (filename without extension)
+            stem = content.stem
+            # Clean up common patterns
+            stem = re.sub(r'[-_]', ' ', stem)
+            if len(stem) > 3 and len(stem) < 100:
+                return stem
+
+        # Try URL path
+        if isinstance(content, str) and content.startswith(("http://", "https://")):
+            from urllib.parse import urlparse
+            parsed = urlparse(content)
+            path = parsed.path.strip('/')
+            if path:
+                # Use last path segment as title
+                parts = path.split('/')
+                title = parts[-1].replace('-', ' ').replace('_', ' ')
+                # Remove extension
+                title = re.sub(r'\.[^.]+$', '', title)
+                if len(title) > 3:
+                    return title.title()
+
+        return None
+
+    def _extract_tags(self, text: str, max_tags: int = 8) -> list[str]:
+        """Extract tags from content using frequency analysis.
+
+        Args:
+            text: Text content
+            max_tags: Maximum number of tags to extract
+
+        Returns:
+            List of tags
+        """
+        import re
+        from collections import Counter
+
+        # Common stopwords for tag extraction
+        stopwords = {
+            'this', 'that', 'with', 'from', 'have', 'been', 'were', 'they', 'their',
+            'which', 'would', 'could', 'should', 'there', 'where', 'when', 'what',
+            'more', 'also', 'just', 'only', 'very', 'into', 'over', 'such', 'after',
+            'before', 'about', 'above', 'below', 'between', 'under', 'again', 'then',
+            'the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'had',
+            'her', 'was', 'one', 'our', 'out', 'has', 'get', 'may', 'see', 'com',
+            'www', 'http', 'https', 'org', 'net', 'edu', 'file', 'section', 'page'
+        }
+
+        # Extract words
+        words = re.findall(r'\b[a-zA-Z]{4,}\b', text.lower())
+
+        # Filter stopwords
+        filtered = [w for w in words if w not in stopwords]
+
+        # Get frequency
+        freq = Counter(filtered)
+
+        # Return top tags (words that appear multiple times)
+        tags = [word for word, count in freq.most_common(max_tags) if count >= 2]
+
+        return tags[:max_tags]
+
+    def _extract_file_metadata(self, file_path: Path) -> dict[str, Any]:
+        """Extract metadata from file.
+
+        Args:
+            file_path: Path to file
+
+        Returns:
+            Dictionary with file metadata
+        """
+        import os
+
+        metadata = {}
+
+        try:
+            stat = file_path.stat()
+
+            metadata["file_size"] = stat.st_size
+            metadata["file_modified"] = datetime.fromtimestamp(stat.st_mtime).isoformat()
+            metadata["file_created"] = datetime.fromtimestamp(stat.st_ctime).isoformat()
+
+            # Extract filename without extension as potential title
+            metadata["file_name"] = file_path.name
+            metadata["file_stem"] = file_path.stem
+            metadata["file_extension"] = file_path.suffix.lower()
+
+        except Exception:
+            pass
+
+        return metadata
+
+    def _extract_url_metadata(self, url: str) -> dict[str, Any]:
+        """Extract metadata from URL.
+
+        Args:
+            url: URL string
+
+        Returns:
+            Dictionary with URL metadata
+        """
+        from urllib.parse import urlparse
+
+        parsed = urlparse(url)
+
+        metadata = {
+            "url_scheme": parsed.scheme,
+            "url_domain": parsed.netloc,
+            "url_path": parsed.path,
+        }
+
+        # Extract domain name
+        domain = parsed.netloc
+        if domain.startswith("www."):
+            domain = domain[4:]
+        metadata["url_domain_name"] = domain.split('.')[0] if domain else None
+
+        return metadata
 
     async def _process_content(self, content: str | Path) -> dict[str, Any]:
         """Process content based on type."""

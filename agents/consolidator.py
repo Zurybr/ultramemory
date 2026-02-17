@@ -3,6 +3,8 @@
 import re
 from datetime import datetime
 from typing import Any
+from difflib import SequenceMatcher
+import hashlib
 from core.memory import MemorySystem
 
 
@@ -19,19 +21,46 @@ class ConsolidatorAgent:
     - Graph-based entity analysis
     - Cross-reference validation
     - Intelligent insights with LLM
+    - Fuzzy matching for better deduplication
+    - Entity extraction (persons, companies, projects)
+    - Category-based quality metrics
+    - Intelligent sync (only changed items)
     """
+
+    # Entity patterns for extraction
+    ENTITY_PATTERNS = {
+        "person": [
+            r'\b([A-Z][a-z]+ [A-Z][a-z]+)\b',  # John Smith
+            r'(?:Mr\.|Mrs\.|Ms\.|Dr\.)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)',  # Mr. Smith
+        ],
+        "company": [
+            r'\b([A-Z][a-zA-Z]+(?:\s+(?:Inc|LLC|Corp|Ltd|SA|SL|Corporation|Company)))\b',
+            r'\b(Google|Microsoft|Amazon|Apple|Meta|OpenAI|Anthropic|Tesla|Netflix)\b',
+        ],
+        "project": [
+            r'\b(?:project|proyecto)\s+([A-Z][a-zA-Z0-9]+)\b',
+            r'\b([A-Z][a-zA-Z]+(?:\s+Project))\b',
+        ],
+    }
 
     def __init__(self, memory_system: MemorySystem):
         self.memory = memory_system
         self.similarity_threshold = 0.85  # Lower for semantic matching
+        self.fuzzy_threshold = 0.75  # Threshold for fuzzy matching
         self.min_content_length = 10
         self.max_content_length = 100000
         self.graph_similarity_threshold = 0.7
+        self._last_sync_time = None  # Track last sync for intelligent updates
+        self._document_hashes = {}  # Track document hashes for change detection
 
-    async def consolidate(self) -> dict[str, Any]:
+    async def consolidate(self, force_full: bool = False) -> dict[str, Any]:
         """Run intelligent consolidation process.
 
         Cross-references Qdrant + FalkorDB for deep analysis.
+        Uses intelligent sync (only changed items) by default.
+
+        Args:
+            force_full: If True, force full consolidation instead of incremental
         """
         report = {
             "duplicates_removed": 0,
@@ -40,26 +69,47 @@ class ConsolidatorAgent:
             "cross_references_fixed": 0,
             "graph_nodes_cleaned": 0,
             "insights_generated": 0,
+            "entities_extracted": 0,
+            "entity_nodes_created": 0,
+            "relationships_created": 0,
+            "quality_metrics_by_category": {},
             "errors": [],
+            "sync_mode": "incremental" if not force_full else "full",
         }
 
         try:
             # Phase 1: Deep Analysis with cross-reference
             analysis = await self.analyze_deep()
+            report["quality_metrics_by_category"] = analysis.get("quality_metrics_by_category", {})
 
-            # Phase 2: Remove exact duplicates
+            # Phase 2: Intelligent sync - only changed items
+            changed_items = await self._detect_changed_items()
+            report["changed_items_detected"] = len(changed_items)
+
+            if changed_items or force_full:
+                # Phase 2a: Sync only changed items to FalkorDB
+                sync_result = await self._sync_changed_items(changed_items)
+                report["nodes_synced"] = sync_result.get("nodes_synced", 0)
+
+            # Phase 3: Remove exact duplicates
             duplicates = await self._find_duplicates()
             for dup in duplicates:
                 await self.memory.qdrant.delete(dup["id"])
             report["duplicates_removed"] = len(duplicates)
 
-            # Phase 3: Remove semantic duplicates using vector search
+            # Phase 4: Remove semantic duplicates using vector search
             semantic_dups = await self._find_semantic_duplicates()
             for dup in semantic_dups:
                 await self.memory.qdrant.delete(dup["id"])
             report["duplicates_removed"] += len(semantic_dups)
 
-            # Phase 4: Fix malformed entries
+            # Phase 5: Fuzzy matching for better deduplication
+            fuzzy_dups = await self._find_fuzzy_duplicates()
+            for dup in fuzzy_dups:
+                await self.memory.qdrant.delete(dup["id"])
+            report["duplicates_removed"] += len(fuzzy_dups)
+
+            # Phase 6: Fix malformed entries
             malformed = await self._find_malformed()
             for entry in malformed.get("empty", []):
                 await self.memory.qdrant.delete(entry["id"])
@@ -67,23 +117,36 @@ class ConsolidatorAgent:
                 await self.memory.qdrant.delete(entry["id"])
             report["malformed_fixed"] = len(malformed.get("empty", [])) + len(malformed.get("too_short", []))
 
-            # Phase 5: Cross-reference validation (Qdrant <-> FalkorDB)
+            # Phase 7: Extract and create entity nodes
+            entity_result = await self._extract_and_create_entities()
+            report["entities_extracted"] = entity_result.get("entities_found", 0)
+            report["entity_nodes_created"] = entity_result.get("nodes_created", 0)
+
+            # Phase 8: Analyze relationships between documents
+            relationships = await self._analyze_document_relationships()
+            report["relationships_analyzed"] = relationships.get("relationships_found", 0)
+            report["relationships_created"] = relationships.get("relationships_created", 0)
+
+            # Phase 9: Cross-reference validation (Qdrant <-> FalkorDB)
             cross_ref_issues = await self._validate_cross_references()
             report["cross_references_fixed"] = cross_ref_issues
 
-            # Phase 6: Clean orphaned graph nodes
+            # Phase 10: Clean orphaned graph nodes
             orphaned = await self._clean_orphaned_nodes()
             report["graph_nodes_cleaned"] = orphaned
 
-            # Phase 7: Generate intelligent insights
+            # Phase 11: Generate intelligent insights
             insights = await self.generate_insights()
             report["insights_generated"] = insights.get("patterns_found", 0)
 
-            # Phase 8: Graph consolidation - sync and create links
+            # Phase 12: Graph consolidation - create links between similar documents
             graph_result = await self._consolidate_graph()
-            report["nodes_synced"] = graph_result.get("nodes_synced", 0)
+            report["nodes_synced"] = report.get("nodes_synced", 0) + graph_result.get("nodes_synced", 0)
             report["links_created"] = graph_result.get("links_created", 0)
             report["graph_insights"] = graph_result.get("insights", [])
+
+            # Update sync timestamp
+            self._last_sync_time = datetime.now()
 
             report["status"] = "success"
             report["analysis_summary"] = analysis.get("summary", {})
@@ -231,6 +294,9 @@ class ConsolidatorAgent:
             "low_quality": {"count": len(issues["low_quality"]), "entries": issues["low_quality"][:5]},
             "orphaned_graph_nodes": {"count": len(issues["orphaned_graph_nodes"]), "entries": issues["orphaned_graph_nodes"]},
         }
+
+        # Quality metrics by category
+        analysis["quality_metrics_by_category"] = self._calculate_quality_by_category(all_docs, by_type, by_source)
 
         # Quality metrics
         analysis["quality_metrics"] = {
@@ -472,8 +538,10 @@ class ConsolidatorAgent:
 
             # Search for similar content
             try:
+                # Generate embedding from content
+                embedding = await self.memory.embedding.embed(content)
                 results = await self.memory.qdrant.search(
-                    content,
+                    embedding,
                     limit=5,
                     score_threshold=self.similarity_threshold
                 )
@@ -734,3 +802,452 @@ class ConsolidatorAgent:
             recs.append("✨ ¡Sin problemas detectados!")
 
         return recs
+
+    # ==================== NEW METHODS FOR IMPROVED CONSOLIDATION ====================
+
+    def _calculate_quality_by_category(
+        self,
+        docs: list[dict],
+        by_type: dict[str, int],
+        by_source: dict[str, int]
+    ) -> dict[str, Any]:
+        """Calculate quality metrics broken down by category (type and source).
+
+        Returns:
+            Dictionary with quality metrics per category
+        """
+        quality_by_category = {
+            "by_type": {},
+            "by_source": {},
+            "overall": {},
+        }
+
+        # Group docs by type
+        docs_by_type: dict[str, list] = {t: [] for t in by_type.keys()}
+        docs_by_source: dict[str, list] = {s: [] for s in by_source.keys()}
+
+        for doc in docs:
+            doc_type = doc.get("metadata", {}).get("type", "unknown")
+            source = doc.get("metadata", {}).get("source", "unknown")
+            content = doc.get("content", "")
+
+            if doc_type in docs_by_type:
+                docs_by_type[doc_type].append(content)
+            if source in docs_by_source:
+                docs_by_source[source].append(content)
+
+        # Calculate metrics by type
+        for doc_type, contents in docs_by_type.items():
+            if not contents:
+                continue
+            quality_by_category["by_type"][doc_type] = self._category_metrics(contents)
+
+        # Calculate metrics by source
+        for source, contents in docs_by_source.items():
+            if not contents:
+                continue
+            quality_by_category["by_source"][source] = self._category_metrics(contents)
+
+        return quality_by_category
+
+    def _category_metrics(self, contents: list[str]) -> dict[str, Any]:
+        """Calculate metrics for a category of content."""
+        total = len(contents)
+        if total == 0:
+            return {}
+
+        # Calculate average length
+        lengths = [len(c) for c in contents]
+        avg_length = sum(lengths) / total
+
+        # Calculate quality scores
+        qualities = [self._assess_quality(c) for c in contents]
+        avg_quality = sum(qualities) / total
+
+        # Calculate completeness (content with metadata indicators)
+        complete = sum(1 for c in contents if len(c) > 50 and any(p in c for p in [".", "!", "?"]))
+        completeness = (complete / total) * 100
+
+        return {
+            "count": total,
+            "avg_length": round(avg_length, 1),
+            "avg_quality": round(avg_quality, 2),
+            "completeness_pct": round(completeness, 1),
+        }
+
+    async def _detect_changed_items(self) -> list[str]:
+        """Detect which items have changed since last sync.
+
+        Uses content hashing to identify modified documents.
+
+        Returns:
+            List of document IDs that have changed
+        """
+        changed = []
+
+        try:
+            all_docs = await self.memory.qdrant.get_all(limit=10000)
+
+            for doc in all_docs:
+                doc_id = doc.get("id", "")
+                content = doc.get("content", "")
+
+                # Generate hash of content
+                content_hash = hashlib.sha256(
+                    content.encode('utf-8')
+                ).hexdigest()
+
+                # Check if this is a new document or if content changed
+                if doc_id not in self._document_hashes:
+                    changed.append(doc_id)
+                elif self._document_hashes[doc_id] != content_hash:
+                    changed.append(doc_id)
+
+                # Update hash tracker
+                self._document_hashes[doc_id] = content_hash
+
+        except Exception:
+            pass
+
+        return changed
+
+    async def _sync_changed_items(self, changed_ids: list[str]) -> dict[str, Any]:
+        """Sync only changed items to FalkorDB.
+
+        Args:
+            changed_ids: List of document IDs that have changed
+
+        Returns:
+            Sync result with count of synced nodes
+        """
+        result = {
+            "nodes_synced": 0,
+            "errors": [],
+        }
+
+        if not changed_ids:
+            return result
+
+        try:
+            if not hasattr(self.memory, 'falkordb') or not self.memory.falkordb:
+                return result
+
+            health = await self.memory.falkordb.health_check()
+            if not health:
+                return result
+
+            # Get the changed documents
+            all_docs = await self.memory.qdrant.get_all(limit=10000)
+            changed_docs = [d for d in all_docs if d.get("id", "") in changed_ids]
+
+            # Sync each changed document
+            for doc in changed_docs:
+                doc_id = doc.get("id", "")
+                content = doc.get("content", "")
+                metadata = doc.get("metadata", {})
+
+                success = await self.memory.falkordb.add_node(
+                    entity_id=doc_id,
+                    content=content,
+                    metadata=metadata
+                )
+
+                if success:
+                    result["nodes_synced"] += 1
+                else:
+                    result["errors"].append(f"Failed to sync {doc_id}")
+
+        except Exception as e:
+            result["errors"].append(str(e))
+
+        return result
+
+    async def _find_fuzzy_duplicates(self) -> list[dict]:
+        """Find fuzzy duplicates using string similarity.
+
+        Uses SequenceMatcher for better detection of near-duplicates
+        that may differ slightly (e.g., typos, minor edits).
+
+        Returns:
+            List of duplicate document IDs
+        """
+        duplicates = []
+        all_docs = await self.memory.qdrant.get_all(limit=1000)
+
+        # Sample for efficiency
+        sample_size = min(200, len(all_docs))
+        sample = all_docs[:sample_size]
+
+        # Build index of normalized content
+        indexed_docs = []
+        for doc in sample:
+            content = doc.get("content", "")
+            if content and len(content) > 20:  # Skip very short content
+                # Normalize: lowercase, remove extra spaces
+                normalized = re.sub(r'\s+', ' ', content.strip().lower())
+                indexed_docs.append({
+                    "id": doc.get("id", ""),
+                    "content": content,
+                    "normalized": normalized,
+                })
+
+        # Compare each document with others
+        checked = set()
+        for i, doc in enumerate(indexed_docs):
+            doc_id = doc["id"]
+
+            for j, other in enumerate(indexed_docs):
+                if i >= j:
+                    continue
+
+                other_id = other["id"]
+                pair_key = tuple(sorted([doc_id, other_id]))
+
+                if pair_key in checked:
+                    continue
+                checked.add(pair_key)
+
+                # Calculate similarity
+                similarity = SequenceMatcher(
+                    None,
+                    doc["normalized"],
+                    other["normalized"]
+                ).ratio()
+
+                if similarity >= self.fuzzy_threshold:
+                    duplicates.append({
+                        "id": other_id,
+                        "similar_to": doc_id,
+                        "score": round(similarity, 3),
+                        "type": "fuzzy",
+                    })
+
+        return duplicates
+
+    async def _extract_and_create_entities(self) -> dict[str, Any]:
+        """Extract entities from documents and create entity nodes in FalkorDB.
+
+        Extracts:
+        - Persons (names)
+        - Companies
+        - Projects
+
+        Creates dedicated entity nodes with relationships to documents.
+
+        Returns:
+            Result with entities found and nodes created
+        """
+        result = {
+            "entities_found": 0,
+            "nodes_created": 0,
+            "by_type": {
+                "person": 0,
+                "company": 0,
+                "project": 0,
+            },
+        }
+
+        try:
+            if not hasattr(self.memory, 'falkordb') or not self.memory.falkordb:
+                return result
+
+            health = await self.memory.falkordb.health_check()
+            if not health:
+                return result
+
+            # Get all documents
+            all_docs = await self.memory.qdrant.get_all(limit=10000)
+
+            # Track unique entities
+            unique_entities: dict[str, dict] = {}
+
+            for doc in all_docs:
+                content = doc.get("content", "")
+                doc_id = doc.get("id", "")
+
+                if not content:
+                    continue
+
+                # Extract entities
+                entities = self._extract_entities(content)
+
+                for entity_type, entity_names in entities.items():
+                    for entity_name in entity_names:
+                        # Create unique key for this entity
+                        key = f"{entity_type}:{entity_name.lower()}"
+
+                        if key not in unique_entities:
+                            unique_entities[key] = {
+                                "type": entity_type,
+                                "name": entity_name,
+                                "doc_ids": [],
+                            }
+
+                        unique_entities[key]["doc_ids"].append(doc_id)
+
+            result["entities_found"] = len(unique_entities)
+
+            # Create entity nodes in FalkorDB
+            for entity_data in unique_entities.values():
+                entity_name = entity_data["name"]
+                entity_type = entity_data["type"]
+
+                # Determine label based on entity type
+                labels = {
+                    "person": "Person",
+                    "company": "Company",
+                    "project": "Project",
+                }.get(entity_type, "Entity")
+
+                # Create entity node
+                try:
+                    query = f"""
+                    MERGE (e:{labels} {{name: "{entity_name.replace('"', '\\"')}"}})
+                    SET e.document_count = {len(entity_data["doc_ids"])},
+                        e.last_updated = "{datetime.now().isoformat()}"
+                    """
+                    await self.memory.falkordb.execute(query)
+                    result["nodes_created"] += 1
+                    result["by_type"][entity_type] = result["by_type"].get(entity_type, 0) + 1
+
+                    # Create relationships to documents
+                    for doc_id in entity_data["doc_ids"][:10]:  # Limit relationships
+                        rel_query = f"""
+                        MATCH (d {{id: "{doc_id}"}})
+                        MATCH (e:{labels} {{name: "{entity_name.replace('"', '\\"')}"}})
+                        MERGE (d)-[:MENTIONS]->(e)
+                        """
+                        try:
+                            await self.memory.falkordb.execute(rel_query)
+                        except Exception:
+                            pass
+
+                except Exception:
+                    continue
+
+        except Exception as e:
+            result["error"] = str(e)
+
+        return result
+
+    def _extract_entities(self, content: str) -> dict[str, list[str]]:
+        """Extract entities from content using regex patterns.
+
+        Args:
+            content: Document content to analyze
+
+        Returns:
+            Dictionary with lists of entities by type
+        """
+        entities = {
+            "person": [],
+            "company": [],
+            "project": [],
+        }
+
+        # Extract persons
+        for pattern in self.ENTITY_PATTERNS.get("person", []):
+            matches = re.findall(pattern, content)
+            entities["person"].extend(matches)
+
+        # Extract companies
+        for pattern in self.ENTITY_PATTERNS.get("company", []):
+            matches = re.findall(pattern, content)
+            entities["company"].extend(matches)
+
+        # Extract projects
+        for pattern in self.ENTITY_PATTERNS.get("project", []):
+            matches = re.findall(pattern, content)
+            entities["project"].extend(matches)
+
+        # Deduplicate each category
+        for entity_type in entities:
+            entities[entity_type] = list(set(entities[entity_type]))
+
+        return entities
+
+    async def _analyze_document_relationships(self) -> dict[str, Any]:
+        """Analyze and create relationships between related documents.
+
+        Creates graph relationships based on:
+        - Semantic similarity (via vector search)
+        - Shared keywords
+        - Shared entities
+        - Temporal proximity (similar timestamps)
+
+        Returns:
+            Analysis result with relationships found and created
+        """
+        result = {
+            "relationships_found": 0,
+            "relationships_created": 0,
+            "by_type": {
+                "semantic": 0,
+                "keyword": 0,
+                "entity": 0,
+            },
+        }
+
+        try:
+            if not hasattr(self.memory, 'falkordb') or not self.memory.falkordb:
+                return result
+
+            health = await self.memory.falkordb.health_check()
+            if not health:
+                return result
+
+            # Get all documents
+            all_docs = await self.memory.qdrant.get_all(limit=1000)
+            sample = all_docs[:100]  # Sample for efficiency
+
+            # For each document, find related documents
+            for doc in sample:
+                doc_id = doc.get("id", "")
+                content = doc.get("content", "")
+                metadata = doc.get("metadata", {})
+
+                if not content:
+                    continue
+
+                # Semantic similarity search
+                try:
+                    embedding = await self.memory.embedding.embed(content)
+                    similar = await self.memory.qdrant.search(
+                        embedding,
+                        limit=5,
+                        score_threshold=0.7
+                    )
+
+                    for sim_doc in similar:
+                        sim_id = sim_doc.get("id", "")
+                        if sim_id != doc_id and sim_id:
+                            # Check if relationship already exists
+                            check_query = f"""
+                            MATCH (a {{id: "{doc_id}"}})-[r:SIMILAR_TO]->(b {{id: "{sim_id}"}})
+                            RETURN r
+                            """
+                            existing = await self.memory.falkordb.execute(check_query)
+
+                            if not existing or len(existing) == 0:
+                                # Create relationship
+                                score = sim_doc.get("score", 0.8)
+                                create_query = f"""
+                                MATCH (a {{id: "{doc_id}"}})
+                                MATCH (b {{id: "{sim_id}"}})
+                                MERGE (a)-[r:SIMILAR_TO {{score: {score}}}]->(b)
+                                """
+                                try:
+                                    await self.memory.falkordb.execute(create_query)
+                                    result["relationships_created"] += 1
+                                    result["by_type"]["semantic"] += 1
+                                except Exception:
+                                    pass
+                except Exception:
+                    pass
+
+            result["relationships_found"] = result["relationships_created"]
+
+        except Exception as e:
+            result["error"] = str(e)
+
+        return result

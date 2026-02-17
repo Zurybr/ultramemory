@@ -39,12 +39,13 @@ class QdrantClientWrapper:
 
         return point_id
 
-    async def search(self, query_embedding: list[float], limit: int = 5) -> list[dict[str, Any]]:
+    async def search(self, query_embedding: list[float], limit: int = 5, score_threshold: float = 0.0) -> list[dict[str, Any]]:
         """Search vectors."""
         results = self.client.query_points(
             collection_name=self.collection_name,
             query=query_embedding,
             limit=limit,
+            score_threshold=score_threshold if score_threshold > 0 else None,
         )
 
         return [

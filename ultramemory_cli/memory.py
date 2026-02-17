@@ -301,3 +301,72 @@ def count_command():
         click.echo(f"\n📊 Total memories: {count}")
 
     asyncio.run(_count())
+
+
+@memory_group.command(name="cache-stats")
+def cache_stats_command():
+    """Show query cache statistics."""
+    async def _stats():
+        memory = MemorySystem()
+        stats = await memory.get_cache_stats()
+
+        click.echo(f"\n📊 Cache Statistics")
+        click.echo(f"{'='*40}")
+        click.echo(f"  Query cache entries: {stats['query_cache_entries']}")
+        click.echo(f"  Entity cache entries: {stats['entity_cache_entries']}")
+        click.echo(f"  Prefetch entries: {stats['prefetch_entries']}")
+        click.echo(f"  History entries: {stats['history_entries']}")
+        click.echo(f"  Frequent queries: {stats['frequent_queries']}")
+
+        # Show recent queries
+        history = await memory.get_query_history(limit=10)
+        if history:
+            click.echo(f"\n📜 Recent queries:")
+            for h in history:
+                ts = h.get("timestamp", "")[:19]
+                query = h.get("query", "")
+                click.echo(f"  {ts} - {query}")
+
+    asyncio.run(_stats())
+
+
+@memory_group.command(name="cache-warmup")
+@click.option("--queries", "-q", multiple=True, help="Custom queries to warmup")
+def cache_warmup_command(queries: tuple):
+    """Warm up query cache with common queries."""
+    async def _warmup():
+        memory = MemorySystem()
+
+        query_list = list(queries) if queries else None
+        click.echo(f"\n🔥 Warming up cache...")
+
+        await memory.warmup_cache(queries=query_list)
+
+        click.echo(f"✅ Cache warmup complete!")
+
+        # Show stats after warmup
+        stats = await memory.get_cache_stats()
+        click.echo(f"   Query cache entries: {stats['query_cache_entries']}")
+
+    asyncio.run(_warmup())
+
+
+@memory_group.command(name="cache-invalidate")
+@click.argument("query", required=False)
+@click.option("--all", "invalidate_all", is_flag=True, help="Invalidate all cached queries")
+def cache_invalidate_command(query: str | None, invalidate_all: bool):
+    """Invalidate query cache."""
+    async def _invalidate():
+        memory = MemorySystem()
+
+        if invalidate_all:
+            await memory.invalidate_query_cache()
+            click.echo(f"\n✅ All query cache invalidated!")
+        elif query:
+            await memory.invalidate_query_cache(query)
+            cache_key = memory._get_query_cache_key(query)
+            click.echo(f"\n✅ Cache invalidated for: {query}")
+        else:
+            click.echo(f"\n⚠️  Specify a query or use --all")
+
+    asyncio.run(_invalidate())

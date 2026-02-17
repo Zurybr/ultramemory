@@ -61,28 +61,55 @@ class ResearcherAgent:
             memory_tool=self.memory_tool,
         )
 
-    async def query(self, query_text: str, limit: int = 5) -> dict[str, Any]:
+    async def query(self, query_text: str, limit: int = 5, use_cache: bool = True) -> dict[str, Any]:
         """Query memory system (legacy interface for backward compatibility).
 
         Args:
             query_text: The search query
             limit: Maximum number of results
+            use_cache: Whether to use cache (default: True)
 
         Returns:
-            Dict with query, results, and total_found
+            Dict with query, results, total_found, cache_hit
         """
         result = await self.memory_tool.execute(query=query_text, limit=limit)
         if result.success:
             return {
                 "query": query_text,
                 "results": result.data.get("vector_results", []),
+                "graph_results": result.data.get("graph_results", []),
+                "temporal_results": result.data.get("temporal_results", []),
                 "total_found": len(result.data.get("vector_results", [])),
+                "cache_hit": result.data.get("cache_hit", False),
             }
         return {
             "query": query_text,
             "results": [],
+            "graph_results": [],
+            "temporal_results": [],
             "total_found": 0,
+            "cache_hit": False,
             "error": result.error,
+        }
+
+    async def warmup_memory_cache(self, queries: list[str] | None = None):
+        """Warm up memory cache with common queries.
+
+        Args:
+            queries: List of queries to pre-cache. Uses defaults if None
+        """
+        if self.memory.warmup_cache:
+            await self.memory.warmup_cache(queries)
+
+    async def get_query_stats(self) -> dict[str, Any]:
+        """Get query and cache statistics."""
+        stats = await self.memory.get_cache_stats()
+        history = await self.memory.get_query_history(limit=10)
+        frequent = await self.memory.get_frequent_queries(limit=10)
+        return {
+            "cache_stats": stats,
+            "recent_queries": [h.get("query") for h in history],
+            "frequent_query_hashes": [h[0] for h in frequent],
         }
 
     async def research(
@@ -360,8 +387,8 @@ class ResearcherAgent:
         if include_github and self.codewiki_tool:
             try:
                 github_result = await self.codewiki_tool.execute(
+                    action="search",
                     query=query,
-                    limit=10,
                 )
                 if github_result.success:
                     results["github"] = github_result.data.get("results", [])
