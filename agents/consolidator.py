@@ -1101,8 +1101,10 @@ class ConsolidatorAgent:
 
                 # Create entity node
                 try:
+                    # Escape quotes for Cypher query (cannot use backslash in f-string)
+                    safe_name = entity_name.replace('"', '""')
                     query = f"""
-                    MERGE (e:{labels} {{name: "{entity_name.replace('"', '\\"')}"}})
+                    MERGE (e:{labels} {{name: "{safe_name}"}})
                     SET e.document_count = {len(entity_data["doc_ids"])},
                         e.last_updated = "{datetime.now().isoformat()}"
                     """
@@ -1114,7 +1116,7 @@ class ConsolidatorAgent:
                     for doc_id in entity_data["doc_ids"][:10]:  # Limit relationships
                         rel_query = f"""
                         MATCH (d {{id: "{doc_id}"}})
-                        MATCH (e:{labels} {{name: "{entity_name.replace('"', '\\"')}"}})
+                        MATCH (e:{labels} {{name: "{safe_name}"}})
                         MERGE (d)-[:MENTIONS]->(e)
                         """
                         try:
