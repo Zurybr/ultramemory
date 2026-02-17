@@ -136,9 +136,13 @@ def _sync_to_crontab():
         lines.append(f"# ULMEMORY_TASK_ID={task_id}")
         lines.append(f"{cron} {cmd}")
 
-    # Install new crontab
+    # Install new crontab (ensure newline at end)
     new_cron = "\n".join(lines)
-    subprocess.run(["crontab", "-"], input=new_cron, text=True, capture_output=True)
+    if new_cron and not new_cron.endswith("\n"):
+        new_cron += "\n"
+    result = subprocess.run(["crontab", "-"], input=new_cron, text=True, capture_output=True)
+    if result.returncode != 0:
+        print(f"Warning: crontab sync failed: {result.stderr}")
 
 
 @click.group(name="schedule")
