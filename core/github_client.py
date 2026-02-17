@@ -351,20 +351,23 @@ class GitHubClient:
 
         return files
 
-    def get_file_content(self, file_path: Path) -> str:
+    def get_file_content(self, file_path: Path | str) -> str:
         """Read file content.
 
         Args:
-            file_path: Path to file
+            file_path: Path to file (can be Path or str)
 
         Returns:
             File content as string
         """
-        with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+        # Convert to Path if string
+        path_obj = Path(file_path) if isinstance(file_path, str) else file_path
+
+        with open(path_obj, "r", encoding="utf-8", errors="ignore") as f:
             content = f.read()
 
         # Filter binary content for VB6 files
-        if file_path.suffix.lower() in {".frm", ".dsr", ".dca", ".dsx"}:
+        if path_obj.suffix.lower() in {".frm", ".dsr", ".dca", ".dsx"}:
             content = self._filter_vb6_binary_content(content)
 
         return content

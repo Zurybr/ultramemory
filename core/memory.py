@@ -30,8 +30,13 @@ class MemorySystem:
         # Initialize embedding provider based on config
         embedding_provider = os.getenv("EMBEDDING_PROVIDER", "minimax")
         api_key = os.getenv(f"{embedding_provider.upper()}_API_KEY", "")
+        vector_size = int(os.getenv("EMBEDDING_VECTOR_SIZE", "1536"))
 
-        self.embedding = get_embedding_provider(embedding_provider, api_key=api_key)
+        self.embedding = get_embedding_provider(
+            embedding_provider,
+            api_key=api_key,
+            vector_size=vector_size
+        )
 
     async def add(self, content: str, metadata: dict[str, Any] | None = None) -> dict[str, Any]:
         """Add content to memory system - stores in both Qdrant (embedding) and FalkorDB (graph).

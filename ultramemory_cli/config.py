@@ -94,6 +94,17 @@ def edit():
     emb = click.prompt("   provider", type=click.Choice(["openai", "google", "minimax", "kimi", "sentence-transformers"]), default=current_emb)
     settings.set("embedding_provider", emb)
 
+    # Vector size (dimensionality)
+    click.echo("\n6. Embedding Vector Size")
+    current_size = settings.get("embedding_vector_size", 1536)
+    click.echo(f"   current: {current_size}")
+    click.echo("   Common values: 1536 (OpenAI), 3072 (OpenAI large), 1024 (many models)")
+    vector_size = click.prompt("   vector dimensions", default=str(current_size))
+    try:
+        settings.set("embedding_vector_size", int(vector_size))
+    except ValueError:
+        click.echo("   Invalid number, keeping current value")
+
     settings.save()
     click.echo("\nConfiguration saved!")
 
