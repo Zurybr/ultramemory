@@ -11,6 +11,28 @@ from agents.researcher import ResearcherAgent
 from agents.consolidator import ConsolidatorAgent
 from agents.auto_researcher import AutoResearcherAgent
 from agents.deleter import DeleterAgent
+from ultramemory_cli.settings import settings
+
+
+def get_memory_system() -> MemorySystem:
+    """Create MemorySystem with settings from config."""
+    services = settings.services
+    qdrant_url = services.get("qdrant", "http://localhost:6333")
+    redis_url = services.get("redis", "localhost:6379")
+    falkordb_url = services.get("falkordb", "localhost:6370")
+    graphiti_url = services.get("graphiti", "http://localhost:8001")
+
+    # Convert redis host:port to redis:// URL
+    if ":" in redis_url and not redis_url.startswith("redis://"):
+        host, port = redis_url.rsplit(":", 1)
+        redis_url = f"redis://{host}:{port}"
+
+    return MemorySystem(
+        qdrant_url=qdrant_url,
+        redis_url=redis_url,
+        falkordb_url=falkordb_url,
+        graphiti_url=graphiti_url,
+    )
 
 
 @click.group(name="memory")
@@ -35,7 +57,7 @@ def add_command(content: str, metadata: tuple):
             meta[key] = value
 
     async def _add():
-        memory = MemorySystem()
+        memory = get_memory_system()
         librarian = LibrarianAgent(memory)
 
         # Check if content is a valid file path (but handle very long texts gracefully)
@@ -62,7 +84,7 @@ def add_command(content: str, metadata: tuple):
 def query_command(query: str, limit: int):
     """Query memory system."""
     async def _query():
-        memory = MemorySystem()
+        memory = get_memory_system()
         researcher = ResearcherAgent(memory)
 
         result = await researcher.query(query, limit)
@@ -79,7 +101,7 @@ def query_command(query: str, limit: int):
 def consolidate_command():
     """Run consolidation agent to remove duplicates and optimize memory."""
     async def _consolidate():
-        memory = MemorySystem()
+        memory = get_memory_system()
         consolidator = ConsolidatorAgent(memory)
 
         # First analyze
@@ -138,7 +160,7 @@ def consolidate_command():
 def analyze_command():
     """Comprehensive memory analysis - finds duplicates, malformed entries, and quality issues."""
     async def _analyze():
-        memory = MemorySystem()
+        memory = get_memory_system()
         consolidator = ConsolidatorAgent(memory)
 
         click.echo("🔍 Analyzing memory...\n")
@@ -198,7 +220,7 @@ def analyze_command():
 def research_command(topics: tuple, output: str):
     """Run auto-researcher agent."""
     async def _research():
-        memory = MemorySystem()
+        memory = get_memory_system()
         researcher = AutoResearcherAgent(memory)
 
         topic_list = list(topics)
@@ -224,7 +246,7 @@ def delete_all_command(confirm: bool, force: bool):
         ulmemory memory delete-all                 # Preview only
     """
     async def _delete():
-        memory = MemorySystem()
+        memory = get_memory_system()
         deleter = DeleterAgent(memory)
 
         # Show count first
@@ -265,7 +287,7 @@ def delete_command(query: str, limit: int, confirm: bool):
         ulmemory memory delete "test" -l 5      # Max 5 deletions
     """
     async def _delete():
-        memory = MemorySystem()
+        memory = get_memory_system()
         deleter = DeleterAgent(memory)
 
         if not confirm:
@@ -295,7 +317,7 @@ def delete_command(query: str, limit: int, confirm: bool):
 def count_command():
     """Count total memories in the system."""
     async def _count():
-        memory = MemorySystem()
+        memory = get_memory_system()
         deleter = DeleterAgent(memory)
         count = await deleter.count()
         click.echo(f"\n📊 Total memories: {count}")
@@ -307,7 +329,7 @@ def count_command():
 def cache_stats_command():
     """Show query cache statistics."""
     async def _stats():
-        memory = MemorySystem()
+        memory = get_memory_system()
         stats = await memory.get_cache_stats()
 
         click.echo(f"\n📊 Cache Statistics")
@@ -335,7 +357,7 @@ def cache_stats_command():
 def cache_warmup_command(queries: tuple):
     """Warm up query cache with common queries."""
     async def _warmup():
-        memory = MemorySystem()
+        memory = get_memory_system()
 
         query_list = list(queries) if queries else None
         click.echo(f"\n🔥 Warming up cache...")
@@ -357,7 +379,7 @@ def cache_warmup_command(queries: tuple):
 def cache_invalidate_command(query: str | None, invalidate_all: bool):
     """Invalidate query cache."""
     async def _invalidate():
-        memory = MemorySystem()
+        memory = get_memory_system()
 
         if invalidate_all:
             await memory.invalidate_query_cache()

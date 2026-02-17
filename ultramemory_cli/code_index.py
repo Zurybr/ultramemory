@@ -9,6 +9,27 @@ from agents.code_indexer import CodeIndexerAgent, CategoryManager
 from .settings import settings
 
 
+def get_memory_system() -> MemorySystem:
+    """Create MemorySystem with settings from config."""
+    services = settings.services
+    qdrant_url = services.get("qdrant", "http://localhost:6333")
+    redis_url = services.get("redis", "localhost:6379")
+    falkordb_url = services.get("falkordb", "localhost:6370")
+    graphiti_url = services.get("graphiti", "http://localhost:8001")
+
+    # Convert redis host:port to redis:// URL
+    if ":" in redis_url and not redis_url.startswith("redis://"):
+        host, port = redis_url.rsplit(":", 1)
+        redis_url = f"redis://{host}:{port}"
+
+    return MemorySystem(
+        qdrant_url=qdrant_url,
+        redis_url=redis_url,
+        falkordb_url=falkordb_url,
+        graphiti_url=graphiti_url,
+    )
+
+
 VALID_CATEGORIES = ["lefarma", "e6labs", "personal", "opensource", "hobby", "trabajo", "dependencias"]
 
 
@@ -101,7 +122,7 @@ def code_index_command(
 
         # Run indexing
         try:
-            memory = MemorySystem()
+            memory = get_memory_system()
             indexer = CodeIndexerAgent(memory)
 
             result = await indexer.index(

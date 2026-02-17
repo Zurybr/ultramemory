@@ -12,6 +12,27 @@ from core.memory import MemorySystem
 from ultramemory_cli.settings import settings, CONFIG_DIR
 
 
+def get_memory_system() -> MemorySystem:
+    """Create MemorySystem with settings from config."""
+    services = settings.services
+    qdrant_url = services.get("qdrant", "http://localhost:6333")
+    redis_url = services.get("redis", "localhost:6379")
+    falkordb_url = services.get("falkordb", "localhost:6370")
+    graphiti_url = services.get("graphiti", "http://localhost:8001")
+
+    # Convert redis host:port to redis:// URL
+    if ":" in redis_url and not redis_url.startswith("redis://"):
+        host, port = redis_url.rsplit(":", 1)
+        redis_url = f"redis://{host}:{port}"
+
+    return MemorySystem(
+        qdrant_url=qdrant_url,
+        redis_url=redis_url,
+        falkordb_url=falkordb_url,
+        graphiti_url=graphiti_url,
+    )
+
+
 # Load Tavily API key from config
 def _get_tavily_key() -> str | None:
     """Get Tavily API key from config or env."""
@@ -336,7 +357,7 @@ def launch_agent(name: str, input_data: str | None):
     )
 
     async def _run():
-        memory = MemorySystem()
+        memory = get_memory_system()
         result = await agent.run(input_data, memory)
         click.echo(f"Result: {result}")
 
@@ -395,7 +416,7 @@ def run_agent(name: str, args: str, web: bool, deep: bool, sources: str | None):
     tavily_key = _get_tavily_key()
 
     async def _run():
-        memory = MemorySystem()
+        memory = get_memory_system()
 
         # System agents
         if name == "consolidator":
@@ -538,7 +559,7 @@ def run_consultant(query: str, order: str, limit: int):
     """Run consultant agent for ordered search."""
 
     async def _run():
-        memory = MemorySystem()
+        memory = get_memory_system()
         from agents.consultant import ConsultantAgent
         agent = ConsultantAgent(memory)
 
@@ -554,7 +575,7 @@ def run_proactive():
     """Run proactive agent to check heartbeat."""
 
     async def _run():
-        memory = MemorySystem()
+        memory = get_memory_system()
         from agents.proactive import ProactiveAgent
         agent = ProactiveAgent(memory)
 
@@ -578,7 +599,7 @@ def run_terminal(action: str, topic: str):
     """Run terminal agent for interactive CLI."""
 
     async def _run():
-        memory = MemorySystem()
+        memory = get_memory_system()
         from agents.terminal import TerminalAgent
         agent = TerminalAgent(memory)
 
@@ -644,7 +665,7 @@ def manage_prd(action: str, research_file: str | None, title: str | None):
     from agents.prd_generator import PRDGeneratorAgent
 
     async def _run():
-        memory = MemorySystem()
+        memory = get_memory_system()
         agent = PRDGeneratorAgent(memory)
 
         if action == "generate" and research_file:
