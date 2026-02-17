@@ -29,7 +29,7 @@ class CodeIndexerAgent:
             content: Filtered VB6 form content
 
         Returns:
-            Dictionary with form_name and caption, or None
+            Dictionary with form_name, caption, controls, procedures, or None
         """
         import re
 
@@ -44,6 +44,21 @@ class CodeIndexerAgent:
         caption_match = re.search(r'Caption\s*=\s*"([^"]*)"', content)
         if caption_match:
             result["caption"] = caption_match.group(1)
+
+        # Extract VB6 controls: Begin VB.ComboBox, Begin VB.TextBox, etc.
+        controls = re.findall(r'Begin VB\.(\w+)\s+(\w+)', content)
+        if controls:
+            result["controls"] = [f"{ctrl_type}:{ctrl_name}" for ctrl_type, ctrl_name in controls]
+
+        # Extract procedures: Private Sub, Public Function, etc.
+        procedures = re.findall(r'(Private|Public)\s+(Sub|Function|Property)\s+(\w+)', content)
+        if procedures:
+            result["procedures"] = [f"{scope} {kind} {name}" for scope, kind, name in procedures[:20]]
+
+        # Extract module/class name if present
+        module_match = re.search(r'Attribute VB_Name\s*=\s*"([^"]*)"', content)
+        if module_match:
+            result["module_name"] = module_match.group(1)
 
         return result if result else None
 
@@ -212,9 +227,27 @@ class CodeIndexerAgent:
             if vb6_info:
                 metadata["vb6_form_name"] = vb6_info.get("form_name")
                 metadata["vb6_caption"] = vb6_info.get("caption")
-                # Also prepend to content for better searchability
+                metadata["vb6_module_name"] = vb6_info.get("module_name")
+                metadata["vb6_controls"] = vb6_info.get("controls", [])
+                metadata["vb6_procedures"] = vb6_info.get("procedures", [])
+
+                # Build enhanced content for better searchability
+                parts = []
                 if vb6_info.get("form_name"):
-                    content = f"FORMULARIO: {vb6_info['form_name']}\nCAPTION: {vb6_info.get('caption', '')}\n\n{content}"
+                    parts.append(f"FORMULARIO: {vb6_info['form_name']}")
+                if vb6_info.get("module_name"):
+                    parts.append(f"MODULO: {vb6_info['module_name']}")
+                if vb6_info.get("caption"):
+                    parts.append(f"TITULO: {vb6_info['caption']}")
+                if vb6_info.get("controls"):
+                    controls_str = ", ".join(vb6_info["controls"][:10])
+                    parts.append(f"CONTROLES: {controls_str}")
+                if vb6_info.get("procedures"):
+                    procs_str = " | ".join(vb6_info["procedures"][:5])
+                    parts.append(f"PROCEDIMIENTOS: {procs_str}")
+
+                if parts:
+                    content = "\n".join(parts) + "\n\n" + content
 
         # Add to memory
         doc_id = await self.memory.add(content, metadata)
